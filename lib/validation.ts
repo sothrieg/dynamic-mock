@@ -166,3 +166,82 @@ export function createSampleSchemaWithFormats() {
     additionalProperties: false
   };
 }
+
+// Helper function to create sample JSON data that matches the sample schema
+export function createSampleJsonData() {
+  return {
+    users: [
+      {
+        id: 1,
+        name: "John Doe",
+        email: "john.doe@example.com",
+        website: "https://johndoe.dev",
+        birthDate: "1990-05-15",
+        createdAt: "2024-01-15T10:30:00Z",
+        phone: "+1234567890",
+        isActive: true,
+        role: "admin"
+      },
+      {
+        id: 2,
+        name: "Jane Smith",
+        email: "jane.smith@example.com",
+        website: "https://janesmith.com",
+        birthDate: "1985-08-22",
+        createdAt: "2024-01-16T14:20:00Z",
+        phone: "+1987654321",
+        isActive: true,
+        role: "user"
+      },
+      {
+        id: 3,
+        name: "Bob Johnson",
+        email: "bob.johnson@example.com",
+        website: "https://bobjohnson.net",
+        birthDate: "1992-12-03",
+        createdAt: "2024-01-17T09:15:00Z",
+        phone: "+1122334455",
+        isActive: false,
+        role: "moderator"
+      }
+    ],
+    products: [
+      {
+        id: 101,
+        name: "Wireless Headphones",
+        price: 99.99,
+        description: "High-quality wireless headphones with noise cancellation",
+        category: "Electronics",
+        inStock: true,
+        tags: ["audio", "wireless", "electronics"]
+      },
+      {
+        id: 102,
+        name: "Smartphone Case",
+        price: 24.99,
+        description: "Durable protective case for smartphones",
+        category: "Accessories",
+        inStock: true,
+        tags: ["phone", "protection", "accessories"]
+      },
+      {
+        id: 103,
+        name: "Bluetooth Speaker",
+        price: 79.99,
+        description: "Portable Bluetooth speaker with excellent sound quality",
+        category: "Electronics",
+        inStock: false,
+        tags: ["audio", "bluetooth", "portable"]
+      },
+      {
+        id: 104,
+        name: "USB-C Cable",
+        price: 12.99,
+        description: "Fast charging USB-C cable, 6 feet long",
+        category: "Cables",
+        inStock: true,
+        tags: ["usb-c", "charging", "cable"]
+      }
+    ]
+  };
+}

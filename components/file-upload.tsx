@@ -3,10 +3,10 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileJson, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Upload, FileJson, AlertCircle, CheckCircle, Info, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { createSampleSchemaWithFormats } from '@/lib/validation';
+import { createSampleSchemaWithFormats, createSampleJsonData } from '@/lib/validation';
 
 interface FileUploadProps {
   onValidation: (result: { isValid: boolean; errors: string[]; resources: string[] }) => void;
@@ -83,17 +83,26 @@ export function FileUpload({ onValidation }: FileUploadProps) {
     }
   };
 
-  const downloadSampleSchema = () => {
-    const sampleSchema = createSampleSchemaWithFormats();
-    const blob = new Blob([JSON.stringify(sampleSchema, null, 2)], { type: 'application/json' });
+  const downloadFile = (data: any, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sample-schema-with-formats.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const downloadSampleSchema = () => {
+    const sampleSchema = createSampleSchemaWithFormats();
+    downloadFile(sampleSchema, 'sample-schema-with-formats.json');
+  };
+
+  const downloadSampleData = () => {
+    const sampleData = createSampleJsonData();
+    downloadFile(sampleData, 'sample-data.json');
   };
 
   const FileDropZone = ({ type, file, title, description }: {
@@ -160,20 +169,32 @@ export function FileUpload({ onValidation }: FileUploadProps) {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="font-medium">Enhanced Format Validation Support:</p>
             <p className="text-sm">
               Your JSON Schema can now include format validation for email, URI, date, date-time, 
               phone numbers, and more. The validator will provide detailed error messages for format violations.
             </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={downloadSampleSchema}
-              className="mt-2"
-            >
-              Download Sample Schema with Formats
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={downloadSampleSchema}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-3 w-3" />
+                Download Sample Schema
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={downloadSampleData}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-3 w-3" />
+                Download Sample JSON Data
+              </Button>
+            </div>
           </div>
         </AlertDescription>
       </Alert>
