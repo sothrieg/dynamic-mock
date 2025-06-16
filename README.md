@@ -4,6 +4,13 @@ A powerful Next.js application that automatically generates REST API endpoints f
 
 ![JSON Schema API Generator](https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400&fit=crop)
 
+## 👨‍💻 Developer
+
+**Thomas Rieger**  
+📧 t.rieger@quickline.ch
+
+---
+
 ## ✨ Features
 
 ### 🚀 **Automatic API Generation**
@@ -296,8 +303,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Getting Help
 
-- 📧 Create an issue on GitHub
-- 💬 Check existing issues for solutions
+- 📧 Contact: **Thomas Rieger** at t.rieger@quickline.ch
+- 💬 Create an issue on GitHub
 - 📖 Review the documentation above
 
 ## 🎯 Roadmap
@@ -313,4 +320,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ using Next.js and modern web technologies**
+**Developed by Thomas Rieger** | **Made with ❤️ using Next.js and modern web technologies**
