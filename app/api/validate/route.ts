@@ -21,11 +21,12 @@ export async function POST(request: NextRequest) {
     const jsonContent = await jsonFile.text();
     const schemaContent = await schemaFile.text();
 
-    let jsonData, schemaData;
+    let jsonData: Record<string, any>;
+    let schemaData: Record<string, any>;
 
     try {
-      jsonData = JSON.parse(jsonContent);
-      schemaData = JSON.parse(schemaContent);
+      jsonData = JSON.parse(jsonContent) as Record<string, any>;
+      schemaData = JSON.parse(schemaContent) as Record<string, any>;
     } catch (error) {
       return NextResponse.json(
         { 
@@ -48,7 +49,9 @@ export async function POST(request: NextRequest) {
       validationResult.errors
     );
 
-    const resources = Object.keys(jsonData).filter(key => Array.isArray(jsonData[key]));
+    const resources = Object.keys(jsonData).filter(
+      (key) => Array.isArray(jsonData[key])
+    );
 
     return NextResponse.json({
       isValid: validationResult.isValid,

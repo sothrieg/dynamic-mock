@@ -9,7 +9,7 @@ import { AlertCircle, FileText, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 // Dynamically import SwaggerUI to avoid SSR issues
-const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
+const SwaggerUI = dynamic<any>(() => import('swagger-ui-react'), { ssr: false });
 
 export default function SwaggerPage() {
   const [swaggerSpec, setSwaggerSpec] = useState<any>(null);
