@@ -23,8 +23,12 @@ export async function GET() {
       openapi: '3.0.0',
       info: {
         title: 'Generated REST API',
-        description: 'REST API endpoints generated from uploaded JSON data and schema',
-        version: '1.0.0',
+        description: 'Full CRUD REST API endpoints generated from uploaded JSON data and schema with comprehensive validation',
+        version: '2.0.0',
+        contact: {
+          name: 'Thomas Rieger',
+          email: 't.rieger@quickline.ch'
+        }
       },
       servers: [
         {
@@ -46,11 +50,31 @@ export async function GET() {
       // Generate schema from first item in the array
       const sampleItem = resourceData[0];
       const schemaName = resource.charAt(0).toUpperCase() + resource.slice(1).slice(0, -1); // Singular form
+      const inputSchemaName = `${schemaName}Input`;
       
-      // Create schema definition
-      swaggerSpec.components.schemas[schemaName] = generateSchemaFromObject(sampleItem);
+      // Create full schema definition
+      const fullSchema = generateSchemaFromObject(sampleItem);
+      swaggerSpec.components.schemas[schemaName] = fullSchema;
 
-      // Collection endpoint
+      // Create input schema (without auto-generated fields)
+      const inputSchema = { ...fullSchema };
+      if (inputSchema.properties) {
+        delete inputSchema.properties.id;
+        delete inputSchema.properties._id;
+        delete inputSchema.properties.uuid;
+        delete inputSchema.properties.createdAt;
+        delete inputSchema.properties.updatedAt;
+        
+        // Remove auto-generated fields from required array
+        if (inputSchema.required) {
+          inputSchema.required = inputSchema.required.filter((field: string) => 
+            !['id', '_id', 'uuid', 'createdAt', 'updatedAt'].includes(field)
+          );
+        }
+      }
+      swaggerSpec.components.schemas[inputSchemaName] = inputSchema;
+
+      // Collection endpoints
       swaggerSpec.paths[`/api/${resource}`] = {
         get: {
           summary: `Get all ${resource}`,
@@ -85,9 +109,53 @@ export async function GET() {
             },
           },
         },
+        post: {
+          summary: `Create a new ${resource.slice(0, -1)}`,
+          description: `Add a new item to the ${resource} collection`,
+          tags: [resource],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: `#/components/schemas/${inputSchemaName}`,
+                },
+              },
+            },
+          },
+          responses: {
+            '201': {
+              description: 'Item created successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaName}`,
+                  },
+                },
+              },
+            },
+            '400': {
+              description: 'Bad request - Validation failed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                      details: {
+                        type: 'array',
+                        items: { type: 'string' }
+                      }
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       };
 
-      // Individual item endpoint
+      // Individual item endpoints
       swaggerSpec.paths[`/api/${resource}/{id}`] = {
         get: {
           summary: `Get ${resource.slice(0, -1)} by ID`,
@@ -128,8 +196,180 @@ export async function GET() {
                 },
               },
             },
+          },
+        },
+        put: {
+          summary: `Update ${resource.slice(0, -1)} by ID`,
+          description: `Replace an entire item in the ${resource} collection`,
+          tags: [resource],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: `ID of the ${resource.slice(0, -1)} to update`,
+              schema: {
+                type: 'string',
+              },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: `#/components/schemas/${inputSchemaName}`,
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Item updated successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaName}`,
+                  },
+                },
+              },
+            },
             '400': {
-              description: 'Bad request - No valid data available',
+              description: 'Bad request - Validation failed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                      details: {
+                        type: 'array',
+                        items: { type: 'string' }
+                      }
+                    },
+                  },
+                },
+              },
+            },
+            '404': {
+              description: 'Item not found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        patch: {
+          summary: `Partially update ${resource.slice(0, -1)} by ID`,
+          description: `Update specific fields of an item in the ${resource} collection`,
+          tags: [resource],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: `ID of the ${resource.slice(0, -1)} to update`,
+              schema: {
+                type: 'string',
+              },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  description: 'Partial update object - only include fields you want to update',
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Item updated successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: `#/components/schemas/${schemaName}`,
+                  },
+                },
+              },
+            },
+            '400': {
+              description: 'Bad request - Validation failed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                      details: {
+                        type: 'array',
+                        items: { type: 'string' }
+                      }
+                    },
+                  },
+                },
+              },
+            },
+            '404': {
+              description: 'Item not found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      error: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        delete: {
+          summary: `Delete ${resource.slice(0, -1)} by ID`,
+          description: `Remove an item from the ${resource} collection`,
+          tags: [resource],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: `ID of the ${resource.slice(0, -1)} to delete`,
+              schema: {
+                type: 'string',
+              },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Item deleted successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      deletedItem: {
+                        $ref: `#/components/schemas/${schemaName}`,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '404': {
+              description: 'Item not found',
               content: {
                 'application/json': {
                   schema: {
