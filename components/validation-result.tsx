@@ -228,6 +228,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
 
   return (
     <div className="space-y-6">
+      {/* 1. Validation Result */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -268,73 +269,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
         </CardContent>
       </Card>
 
-      {/* Show Analytics Dashboard link immediately after successful validation */}
-      {isValid && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Real-time API Analytics
-            </CardTitle>
-            <CardDescription>
-              Monitor API performance, track requests, and analyze usage patterns in real-time
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
-              <div className="space-y-1">
-                <p className="font-medium text-gray-900">
-                  Live API Monitoring Dashboard
-                </p>
-                <p className="text-sm text-gray-600">
-                  Real-time metrics, performance analytics, request logs, and comprehensive monitoring
-                </p>
-              </div>
-              <Link href="/analytics">
-                <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  View Analytics
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Show Swagger Documentation link immediately after successful validation */}
-      {isValid && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Interactive API Documentation
-            </CardTitle>
-            <CardDescription>
-              Complete Swagger documentation with testing interface for all CRUD operations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-              <div className="space-y-1">
-                <p className="font-medium text-gray-900">
-                  Full CRUD API Documentation
-                </p>
-                <p className="text-sm text-gray-600">
-                  Test all HTTP methods (GET, POST, PUT, PATCH, DELETE) with interactive Swagger UI
-                </p>
-              </div>
-              <Link href="/swagger">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <FileText className="h-4 w-4 mr-2" />
-                  View Documentation
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Endpoint Selection */}
+      {/* 2. Customize Your API */}
       {isValid && resources.length > 0 && !generatedEndpoints && (
         <div className="space-y-4">
           {!showEndpointSelection ? (
@@ -379,6 +314,72 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             />
           )}
         </div>
+      )}
+
+      {/* 3. Interactive Documentation */}
+      {isValid && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Interactive API Documentation
+            </CardTitle>
+            <CardDescription>
+              Complete Swagger documentation with testing interface for all CRUD operations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
+              <div className="space-y-1">
+                <p className="font-medium text-gray-900">
+                  Full CRUD API Documentation
+                </p>
+                <p className="text-sm text-gray-600">
+                  Test all HTTP methods (GET, POST, PUT, PATCH, DELETE) with interactive Swagger UI
+                </p>
+              </div>
+              <Link href="/swagger">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Documentation
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4. Real-time API Analytics */}
+      {isValid && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Real-time API Analytics
+            </CardTitle>
+            <CardDescription>
+              Monitor API performance, track requests, and analyze usage patterns in real-time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
+              <div className="space-y-1">
+                <p className="font-medium text-gray-900">
+                  Live API Monitoring Dashboard
+                </p>
+                <p className="text-sm text-gray-600">
+                  Real-time metrics, performance analytics, request logs, and comprehensive monitoring
+                </p>
+              </div>
+              <Link href="/analytics">
+                <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  View Analytics
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* API Overview with Endpoint Status */}
