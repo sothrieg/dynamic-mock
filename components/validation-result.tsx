@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings } from 'lucide-react';
+import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { EndpointSelection } from '@/components/endpoint-selection';
@@ -183,6 +183,28 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
     return endpointKey ? resourceConfig.endpoints[endpointKey] : false;
   };
 
+  const getEndpointStatusSummary = () => {
+    if (!generatedEndpoints) {
+      return {
+        totalPossible: resources.length * 6,
+        totalEnabled: resources.length * 6,
+        enabledByResource: resources.reduce((acc, resource) => ({ ...acc, [resource]: 6 }), {} as Record<string, number>)
+      };
+    }
+
+    const totalPossible = resources.length * 6;
+    const totalEnabled = generatedEndpoints.reduce((total, config) => 
+      total + Object.values(config.endpoints).filter(Boolean).length, 0
+    );
+    
+    const enabledByResource = generatedEndpoints.reduce((acc, config) => ({
+      ...acc,
+      [config.resource]: Object.values(config.endpoints).filter(Boolean).length
+    }), {} as Record<string, number>);
+
+    return { totalPossible, totalEnabled, enabledByResource };
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -335,6 +357,191 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             />
           )}
         </div>
+      )}
+
+      {/* API Overview with Endpoint Status */}
+      {isValid && resources.length > 0 && generatedEndpoints && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              API Overview & Endpoint Status
+            </CardTitle>
+            <CardDescription>
+              Overview of your customized API with enabled/disabled endpoint indicators
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Summary Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="text-2xl font-bold text-green-600">
+                  {getEndpointStatusSummary().totalEnabled}
+                </div>
+                <div className="text-sm text-green-800">Enabled Endpoints</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-2xl font-bold text-gray-600">
+                  {getEndpointStatusSummary().totalPossible - getEndpointStatusSummary().totalEnabled}
+                </div>
+                <div className="text-sm text-gray-800">Disabled Endpoints</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="text-2xl font-bold text-blue-600">
+                  {resources.length}
+                </div>
+                <div className="text-sm text-blue-800">Resources</div>
+              </div>
+            </div>
+
+            {/* Endpoint Status Matrix */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Endpoint Status by Resource</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium text-gray-700">Resource</th>
+                      <th className="text-center p-3 font-medium text-gray-700">GET Collection</th>
+                      <th className="text-center p-3 font-medium text-gray-700">POST Collection</th>
+                      <th className="text-center p-3 font-medium text-gray-700">GET Item</th>
+                      <th className="text-center p-3 font-medium text-gray-700">PUT Item</th>
+                      <th className="text-center p-3 font-medium text-gray-700">PATCH Item</th>
+                      <th className="text-center p-3 font-medium text-gray-700">DELETE Item</th>
+                      <th className="text-center p-3 font-medium text-gray-700">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resources.map((resource) => {
+                      const resourceConfig = generatedEndpoints.find(config => config.resource === resource);
+                      const endpoints = resourceConfig?.endpoints || {
+                        'GET_collection': false,
+                        'POST_collection': false,
+                        'GET_item': false,
+                        'PUT_item': false,
+                        'PATCH_item': false,
+                        'DELETE_item': false,
+                      };
+                      
+                      const enabledCount = Object.values(endpoints).filter(Boolean).length;
+                      
+                      return (
+                        <tr key={resource} className="border-b hover:bg-gray-50">
+                          <td className="p-3">
+                            <Badge variant="secondary" className="font-mono text-sm">
+                              {resource}
+                            </Badge>
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.GET_collection ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.POST_collection ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.GET_item ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.PUT_item ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.PATCH_item ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            {endpoints.DELETE_item ? (
+                              <div className="flex items-center justify-center">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <span className="sr-only">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <X className="h-4 w-4 text-red-400" />
+                                <span className="sr-only">Disabled</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-center p-3">
+                            <Badge 
+                              variant={enabledCount > 0 ? "default" : "secondary"}
+                              className={enabledCount > 0 ? "bg-green-100 text-green-800" : ""}
+                            >
+                              {enabledCount}/6
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-gray-700">Endpoint Enabled</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-gray-700">Endpoint Disabled</span>
+              </div>
+              <div className="text-sm text-gray-600">
+                Only enabled endpoints will be accessible via the API and shown in documentation
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Generated Endpoints Display */}
