@@ -40,13 +40,22 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '7');
+    const body = await request.json().catch(() => ({}));
     
-    analytics.clearOldData(days);
-    
-    return NextResponse.json({ 
-      message: `Cleared data older than ${days} days` 
-    });
+    if (body.clearAll) {
+      // Clear all analytics data completely
+      analytics.clearAllData();
+      return NextResponse.json({ 
+        message: 'All analytics data has been cleared completely' 
+      });
+    } else {
+      // Clear old data (existing functionality)
+      const days = parseInt(searchParams.get('days') || '7');
+      analytics.clearOldData(days);
+      return NextResponse.json({ 
+        message: `Cleared data older than ${days} days` 
+      });
+    }
   } catch (error) {
     console.error('Analytics cleanup error:', error);
     return NextResponse.json(

@@ -19,6 +19,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState<'json' | 'schema' | null>(null);
   const [hasPersistedData, setHasPersistedData] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Load persisted files on component mount
   useEffect(() => {
@@ -120,28 +121,49 @@ export function FileUpload({ onValidation }: FileUploadProps) {
   };
 
   const handleReset = async () => {
-    // Clear files from state
-    setJsonFile(null);
-    setSchemaFile(null);
-    setHasPersistedData(false);
+    setIsResetting(true);
     
-    // Clear from persistence
-    fileStore.clearFiles();
-    
-    // Clear validation result
-    onValidation({
-      isValid: false,
-      errors: [],
-      resources: []
-    });
-
-    // Clear any generated API data
     try {
-      await fetch('/api/validate', {
-        method: 'DELETE'
+      // Clear files from state
+      setJsonFile(null);
+      setSchemaFile(null);
+      setHasPersistedData(false);
+      
+      // Clear from persistence
+      fileStore.clearFiles();
+      
+      // Clear validation result
+      onValidation({
+        isValid: false,
+        errors: [],
+        resources: []
       });
+
+      // Clear generated API data and analytics in parallel
+      const clearPromises = [
+        // Clear API data
+        fetch('/api/validate', {
+          method: 'DELETE'
+        }),
+        // Clear analytics data
+        fetch('/api/analytics', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ clearAll: true })
+        })
+      ];
+
+      await Promise.all(clearPromises);
+      
+      console.log('✅ All data cleared: Files, API endpoints, and analytics');
+      
     } catch (error) {
-      console.error('Error clearing API data:', error);
+      console.error('Error during reset:', error);
+      // Still show success to user since the main UI reset worked
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -234,20 +256,6 @@ export function FileUpload({ onValidation }: FileUploadProps) {
         </p>
       </div>
 
-      {/* Reset Button - Show when files are present */}
-      {(jsonFile || schemaFile) && (
-        <div className="flex justify-center">
-          <Button 
-            onClick={handleReset}
-            variant="outline"
-            className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-            Reset All Files & Endpoints
-          </Button>
-        </div>
-      )}
-
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
@@ -310,6 +318,30 @@ export function FileUpload({ onValidation }: FileUploadProps) {
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             {isLoading ? 'Validating...' : 'Validate & Generate APIs'}
+          </Button>
+        </div>
+      )}
+
+      {/* Reset Button - Show when files are present */}
+      {(jsonFile || schemaFile) && (
+        <div className="flex justify-center">
+          <Button 
+            onClick={handleReset}
+            disabled={isResetting}
+            variant="outline"
+            className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            {isResetting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
+                Resetting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                Reset All Files & Endpoints
+              </>
+            )}
           </Button>
         </div>
       )}

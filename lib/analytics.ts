@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
 export interface ApiRequest {
@@ -327,6 +327,26 @@ class AnalyticsManager {
     this.requests = this.requests.filter(req => req.timestamp > cutoffTime);
     this.saveRequests();
     this.metricsCache = null;
+  }
+
+  clearAllData() {
+    // Clear all in-memory data
+    this.requests = [];
+    this.metricsCache = null;
+    this.lastMetricsUpdate = 0;
+    
+    // Remove analytics files
+    try {
+      if (existsSync(this.requestsFile)) {
+        unlinkSync(this.requestsFile);
+      }
+      if (existsSync(this.metricsFile)) {
+        unlinkSync(this.metricsFile);
+      }
+      console.log('✅ Analytics data files cleared successfully');
+    } catch (error) {
+      console.error('Error clearing analytics files:', error);
+    }
   }
 }
 
