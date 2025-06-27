@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
 import { validateJsonWithSchema } from '@/lib/validation';
+import { withAnalytics } from '@/lib/middleware';
 
-export async function GET(
+async function handleGET(
   request: NextRequest,
   { params }: { params: { resource: string } }
 ) {
@@ -44,7 +45,7 @@ export async function GET(
   }
 }
 
-export async function POST(
+async function handlePOST(
   request: NextRequest,
   { params }: { params: { resource: string } }
 ) {
@@ -132,3 +133,6 @@ export async function POST(
     );
   }
 }
+
+export const GET = withAnalytics(handleGET);
+export const POST = withAnalytics(handlePOST);

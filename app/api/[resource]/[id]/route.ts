@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
 import { validateJsonWithSchema } from '@/lib/validation';
+import { withAnalytics } from '@/lib/middleware';
 
-export async function GET(
+async function handleGET(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
 ) {
@@ -37,7 +38,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
+async function handlePUT(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
 ) {
@@ -131,7 +132,7 @@ export async function PUT(
   }
 }
 
-export async function PATCH(
+async function handlePATCH(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
 ) {
@@ -230,7 +231,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
+async function handleDELETE(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
 ) {
@@ -290,3 +291,8 @@ export async function DELETE(
     );
   }
 }
+
+export const GET = withAnalytics(handleGET);
+export const PUT = withAnalytics(handlePUT);
+export const PATCH = withAnalytics(handlePATCH);
+export const DELETE = withAnalytics(handleDELETE);

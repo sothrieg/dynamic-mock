@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateJsonWithSchema } from '@/lib/validation';
 import { dataStore } from '@/lib/data-store';
+import { withAnalytics } from '@/lib/middleware';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const jsonFile = formData.get('jsonFile') as File;
@@ -71,3 +72,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAnalytics(handlePOST);

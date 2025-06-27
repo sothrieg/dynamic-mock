@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -95,7 +95,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Your JSON data is valid! Full CRUD API endpoints have been generated successfully with comprehensive validation.
+                Your JSON data is valid! Full CRUD API endpoints have been generated successfully with comprehensive validation and real-time monitoring.
               </AlertDescription>
             </Alert>
           ) : (
@@ -115,6 +115,39 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
           )}
         </CardContent>
       </Card>
+
+      {/* Show Analytics Dashboard link immediately after successful validation */}
+      {isValid && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Real-time API Analytics
+            </CardTitle>
+            <CardDescription>
+              Monitor API performance, track requests, and analyze usage patterns in real-time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
+              <div className="space-y-1">
+                <p className="font-medium text-gray-900">
+                  Live API Monitoring Dashboard
+                </p>
+                <p className="text-sm text-gray-600">
+                  Real-time metrics, performance analytics, request logs, and comprehensive monitoring
+                </p>
+              </div>
+              <Link href="/analytics">
+                <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  View Analytics
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Show Swagger Documentation link immediately after successful validation */}
       {isValid && (
@@ -157,7 +190,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
               Generated CRUD API Endpoints
             </CardTitle>
             <CardDescription>
-              Complete REST API with Create, Read, Update, and Delete operations
+              Complete REST API with Create, Read, Update, and Delete operations - now with real-time monitoring
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -361,16 +394,17 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p><strong>Full CRUD Operations Available:</strong></p>
+                  <p><strong>Full CRUD Operations with Real-time Monitoring:</strong></p>
                   <ul className="text-sm space-y-1 ml-4">
                     <li>• <strong>GET</strong> - Retrieve data (collections and individual items)</li>
                     <li>• <strong>POST</strong> - Create new items with automatic ID generation</li>
                     <li>• <strong>PUT</strong> - Replace entire items with validation</li>
                     <li>• <strong>PATCH</strong> - Update specific fields only</li>
                     <li>• <strong>DELETE</strong> - Remove items permanently</li>
+                    <li>• <strong>Analytics</strong> - Real-time monitoring and performance tracking</li>
                   </ul>
                   <p className="text-sm mt-2">
-                    All operations include comprehensive validation against your JSON schema and automatic timestamp management.
+                    All operations include comprehensive validation, automatic timestamp management, and real-time analytics tracking.
                   </p>
                 </div>
               </AlertDescription>

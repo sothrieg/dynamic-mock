@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
+import { withAnalytics } from '@/lib/middleware';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+async function handleGET() {
   try {
     const store = dataStore.getData();
 
@@ -433,3 +434,5 @@ function generateSchemaFromObject(obj: any): any {
       return { type: 'string' };
   }
 }
+
+export const GET = withAnalytics(handleGET);
