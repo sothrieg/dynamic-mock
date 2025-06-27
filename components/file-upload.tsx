@@ -11,9 +11,10 @@ import { fileStore } from '@/lib/file-store';
 
 interface FileUploadProps {
   onValidation: (result: { isValid: boolean; errors: string[]; resources: string[] }) => void;
+  onReset?: () => void;
 }
 
-export function FileUpload({ onValidation }: FileUploadProps) {
+export function FileUpload({ onValidation, onReset }: FileUploadProps) {
   const [jsonFile, setJsonFile] = useState<File | null>(null);
   const [schemaFile, setSchemaFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -120,7 +121,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
     }
   };
 
-  const handleReset = async () => {
+  const handleResetClick = async () => {
     setIsResetting(true);
     
     try {
@@ -132,12 +133,10 @@ export function FileUpload({ onValidation }: FileUploadProps) {
       // Clear from persistence
       fileStore.clearFiles();
       
-      // Clear validation result
-      onValidation({
-        isValid: false,
-        errors: [],
-        resources: []
-      });
+      // Call parent reset handler if provided
+      if (onReset) {
+        onReset();
+      }
 
       // Clear generated API data and analytics in parallel
       const clearPromises = [
@@ -333,7 +332,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
       {(jsonFile || schemaFile) && (
         <div className="flex justify-center">
           <Button 
-            onClick={handleReset}
+            onClick={handleResetClick}
             disabled={isResetting}
             variant="outline"
             className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"

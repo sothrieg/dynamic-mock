@@ -19,10 +19,12 @@ import {
   CheckCircle,
   XCircle,
   Timer,
-  Database
+  Database,
+  ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { validationStateManager } from '@/lib/validation-state';
 
 interface ApiMetrics {
   totalRequests: number;
@@ -69,6 +71,13 @@ export default function AnalyticsPage() {
   const [recentRequests, setRecentRequests] = useState<ApiRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasValidationState, setHasValidationState] = useState(false);
+
+  // Check if we have valid validation state
+  useEffect(() => {
+    const hasValid = validationStateManager.hasValidState();
+    setHasValidationState(hasValid);
+  }, []);
 
   const fetchMetrics = async () => {
     try {
@@ -205,10 +214,10 @@ export default function AnalyticsPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Link href="/">
+              <Link href={hasValidationState ? "/" : "/"}>
                 <Button variant="outline">
-                  <Database className="h-4 w-4 mr-2" />
-                  Back to API
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to {hasValidationState ? "API" : "Upload"}
                 </Button>
               </Link>
             </div>
