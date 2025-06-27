@@ -18,6 +18,14 @@ async function handleGET(
       );
     }
 
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'GET_collection')) {
+      return NextResponse.json(
+        { error: `GET collection endpoint for '${resource}' is not enabled` },
+        { status: 404 }
+      );
+    }
+
     const resourceData = store.data[resource];
 
     if (!resourceData) {
@@ -57,6 +65,14 @@ async function handlePOST(
       return NextResponse.json(
         { error: 'No valid data available. Please upload and validate JSON first.' },
         { status: 400 }
+      );
+    }
+
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'POST_collection')) {
+      return NextResponse.json(
+        { error: `POST collection endpoint for '${resource}' is not enabled` },
+        { status: 404 }
       );
     }
 

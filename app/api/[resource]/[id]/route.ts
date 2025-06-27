@@ -18,6 +18,14 @@ async function handleGET(
       );
     }
 
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'GET_item')) {
+      return NextResponse.json(
+        { error: `GET item endpoint for '${resource}' is not enabled` },
+        { status: 404 }
+      );
+    }
+
     const item = dataStore.getResourceItem(resource, id);
 
     if (!item) {
@@ -50,6 +58,14 @@ async function handlePUT(
       return NextResponse.json(
         { error: 'No valid data available. Please upload and validate JSON first.' },
         { status: 400 }
+      );
+    }
+
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'PUT_item')) {
+      return NextResponse.json(
+        { error: `PUT item endpoint for '${resource}' is not enabled` },
+        { status: 404 }
       );
     }
 
@@ -144,6 +160,14 @@ async function handlePATCH(
       return NextResponse.json(
         { error: 'No valid data available. Please upload and validate JSON first.' },
         { status: 400 }
+      );
+    }
+
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'PATCH_item')) {
+      return NextResponse.json(
+        { error: `PATCH item endpoint for '${resource}' is not enabled` },
+        { status: 404 }
       );
     }
 
@@ -243,6 +267,14 @@ async function handleDELETE(
       return NextResponse.json(
         { error: 'No valid data available. Please upload and validate JSON first.' },
         { status: 400 }
+      );
+    }
+
+    // Check if this endpoint is enabled
+    if (!dataStore.isEndpointEnabled(resource, 'DELETE_item')) {
+      return NextResponse.json(
+        { error: `DELETE item endpoint for '${resource}' is not enabled` },
+        { status: 404 }
       );
     }
 

@@ -9,6 +9,19 @@ interface DataStore {
   errors: string[];
   resources: string[];
   timestamp: number;
+  endpointConfig?: EndpointConfig[];
+}
+
+interface EndpointConfig {
+  resource: string;
+  endpoints: {
+    'GET_collection': boolean;
+    'POST_collection': boolean;
+    'GET_item': boolean;
+    'PUT_item': boolean;
+    'PATCH_item': boolean;
+    'DELETE_item': boolean;
+  };
 }
 
 class DataStoreManager {
@@ -18,7 +31,8 @@ class DataStoreManager {
     isValid: false,
     errors: [],
     resources: [],
-    timestamp: 0
+    timestamp: 0,
+    endpointConfig: undefined
   };
 
   private dataDir = join(process.cwd(), '.data');
@@ -69,11 +83,48 @@ class DataStoreManager {
       isValid,
       errors,
       resources: this.extractResources(data),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      endpointConfig: undefined // Reset endpoint config when new data is set
     };
     
     // Save to file for persistence
     this.saveToFile();
+  }
+
+  setEndpointConfig(config: EndpointConfig[]) {
+    this.store.endpointConfig = config;
+    this.saveToFile();
+  }
+
+  getEndpointConfig(): EndpointConfig[] | undefined {
+    this.loadFromFile();
+    return this.store.endpointConfig;
+  }
+
+  isEndpointEnabled(resource: string, method: string): boolean {
+    const config = this.getEndpointConfig();
+    if (!config) {
+      // If no config is set, all endpoints are enabled (backward compatibility)
+      return true;
+    }
+
+    const resourceConfig = config.find(c => c.resource === resource);
+    if (!resourceConfig) {
+      return false;
+    }
+
+    // Map HTTP methods to our endpoint keys
+    const methodMap: Record<string, keyof EndpointConfig['endpoints']> = {
+      'GET_collection': 'GET_collection',
+      'POST_collection': 'POST_collection',
+      'GET_item': 'GET_item',
+      'PUT_item': 'PUT_item',
+      'PATCH_item': 'PATCH_item',
+      'DELETE_item': 'DELETE_item'
+    };
+
+    const endpointKey = methodMap[method];
+    return endpointKey ? resourceConfig.endpoints[endpointKey] : false;
   }
 
   getData() {
@@ -110,7 +161,8 @@ class DataStoreManager {
       isValid: false,
       errors: [],
       resources: [],
-      timestamp: 0
+      timestamp: 0,
+      endpointConfig: undefined
     };
     
     // Remove the file
@@ -132,4 +184,4 @@ class DataStoreManager {
 }
 
 export const dataStore = new DataStoreManager();
-export type { DataStore };
+export type { DataStore, EndpointConfig };

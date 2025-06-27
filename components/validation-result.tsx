@@ -5,9 +5,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { EndpointSelection } from '@/components/endpoint-selection';
 
 interface ValidationResultProps {
   isValid: boolean;
@@ -15,10 +16,25 @@ interface ValidationResultProps {
   resources: string[];
 }
 
+interface EndpointConfig {
+  resource: string;
+  endpoints: {
+    'GET_collection': boolean;
+    'POST_collection': boolean;
+    'GET_item': boolean;
+    'PUT_item': boolean;
+    'PATCH_item': boolean;
+    'DELETE_item': boolean;
+  };
+}
+
 export function ValidationResult({ isValid, errors, resources }: ValidationResultProps) {
   const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, any>>({});
+  const [showEndpointSelection, setShowEndpointSelection] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedEndpoints, setGeneratedEndpoints] = useState<EndpointConfig[] | null>(null);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -120,6 +136,53 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
     window.open(endpoint, '_blank');
   };
 
+  const handleGenerateEndpoints = async (selectedEndpoints: EndpointConfig[]) => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-endpoints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ selectedEndpoints }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setGeneratedEndpoints(selectedEndpoints);
+        setShowEndpointSelection(false);
+        alert(`✅ Success!\n${result.message}\n\nGenerated ${result.totalEndpoints} endpoints across ${result.resources.length} resources.`);
+      } else {
+        alert(`❌ Error!\n${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to generate endpoints:', error);
+      alert(`❌ Network Error!\nFailed to generate endpoints.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const isEndpointEnabled = (resource: string, method: string): boolean => {
+    if (!generatedEndpoints) return true; // Show all if no selection made yet
+    
+    const resourceConfig = generatedEndpoints.find(config => config.resource === resource);
+    if (!resourceConfig) return false;
+    
+    const methodMap: Record<string, keyof EndpointConfig['endpoints']> = {
+      'GET_collection': 'GET_collection',
+      'POST_collection': 'POST_collection',
+      'GET_item': 'GET_item',
+      'PUT_item': 'PUT_item',
+      'PATCH_item': 'PATCH_item',
+      'DELETE_item': 'DELETE_item'
+    };
+    
+    const endpointKey = methodMap[method];
+    return endpointKey ? resourceConfig.endpoints[endpointKey] : false;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -141,7 +204,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Your JSON data is valid! Full CRUD API endpoints have been generated successfully with comprehensive validation and real-time monitoring.
+                Your JSON data is valid! You can now choose which REST API endpoints to generate with comprehensive validation and real-time monitoring.
               </AlertDescription>
             </Alert>
           ) : (
@@ -228,7 +291,54 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
         </Card>
       )}
 
-      {isValid && resources.length > 0 && (
+      {/* Endpoint Selection */}
+      {isValid && resources.length > 0 && !generatedEndpoints && (
+        <div className="space-y-4">
+          {!showEndpointSelection ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Customize Your API
+                </CardTitle>
+                <CardDescription>
+                  Choose which REST endpoints to generate for your resources
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border">
+                  <div className="space-y-1">
+                    <p className="font-medium text-gray-900">
+                      Select Specific Endpoints
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Customize which CRUD operations to enable for each resource ({resources.length} resources found)
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setShowEndpointSelection(true)}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Choose Endpoints
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <EndpointSelection
+              resources={resources}
+              onGenerate={handleGenerateEndpoints}
+              isGenerating={isGenerating}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Generated Endpoints Display */}
+      {isValid && resources.length > 0 && generatedEndpoints && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -236,246 +346,275 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
               Generated CRUD API Endpoints
             </CardTitle>
             <CardDescription>
-              Complete REST API with Create, Read, Update, and Delete operations - now with real-time monitoring
+              Your customized REST API with selected operations - now with real-time monitoring
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {resources.map((resource) => (
-              <div key={resource} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="font-mono text-sm">
-                    {resource}
-                  </Badge>
-                  <span className="text-sm text-gray-600">resource collection</span>
+            {resources.map((resource) => {
+              const resourceConfig = generatedEndpoints.find(config => config.resource === resource);
+              if (!resourceConfig) return null;
+
+              const enabledEndpoints = Object.entries(resourceConfig.endpoints)
+                .filter(([_, enabled]) => enabled)
+                .map(([method, _]) => method);
+
+              if (enabledEndpoints.length === 0) return null;
+
+              return (
+                <div key={resource} className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="font-mono text-sm">
+                      {resource}
+                    </Badge>
+                    <span className="text-sm text-gray-600">
+                      {enabledEndpoints.length} endpoint{enabledEndpoints.length !== 1 ? 's' : ''} enabled
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3 ml-4">
+                    {/* Collection endpoints */}
+                    {(isEndpointEnabled(resource, 'GET_collection') || isEndpointEnabled(resource, 'POST_collection')) && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Collection Operations</h4>
+                        
+                        {/* GET Collection */}
+                        {isEndpointEnabled(resource, 'GET_collection') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('GET')}>
+                                {getMethodIcon('GET')}
+                                <span className="ml-1">GET</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}
+                              </code>
+                              <span className="text-xs text-gray-500">Get all items</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => testEndpoint(`/api/${resource}`, 'GET')}
+                                disabled={testingEndpoint === `/api/${resource}`}
+                              >
+                                {testingEndpoint === `/api/${resource}` ? (
+                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                                ) : (
+                                  <ExternalLink className="h-3 w-3" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openInNewTab(`/api/${resource}`)}
+                                title="Open in new tab"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* POST Collection */}
+                        {isEndpointEnabled(resource, 'POST_collection') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('POST')}>
+                                {getMethodIcon('POST')}
+                                <span className="ml-1">POST</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}
+                              </code>
+                              <span className="text-xs text-gray-500">Create new item</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Individual item endpoints */}
+                    {(isEndpointEnabled(resource, 'GET_item') || isEndpointEnabled(resource, 'PUT_item') || 
+                      isEndpointEnabled(resource, 'PATCH_item') || isEndpointEnabled(resource, 'DELETE_item')) && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Item Operations</h4>
+                        
+                        {/* GET Item */}
+                        {isEndpointEnabled(resource, 'GET_item') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('GET')}>
+                                {getMethodIcon('GET')}
+                                <span className="ml-1">GET</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}/[id]
+                              </code>
+                              <span className="text-xs text-gray-500">Get specific item</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PUT Item */}
+                        {isEndpointEnabled(resource, 'PUT_item') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('PUT')}>
+                                {getMethodIcon('PUT')}
+                                <span className="ml-1">PUT</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}/[id]
+                              </code>
+                              <span className="text-xs text-gray-500">Replace entire item</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PATCH Item */}
+                        {isEndpointEnabled(resource, 'PATCH_item') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('PATCH')}>
+                                {getMethodIcon('PATCH')}
+                                <span className="ml-1">PATCH</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}/[id]
+                              </code>
+                              <span className="text-xs text-gray-500">Partial update</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* DELETE Item */}
+                        {isEndpointEnabled(resource, 'DELETE_item') && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Badge className={getMethodColor('DELETE')}>
+                                {getMethodIcon('DELETE')}
+                                <span className="ml-1">DELETE</span>
+                              </Badge>
+                              <code className="text-sm font-mono">
+                                {baseUrl}/api/{resource}/[id]
+                              </code>
+                              <span className="text-xs text-gray-500">Delete item</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
+                              >
+                                {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show test results if available */}
+                  {testResults[`/api/${resource}`] && (
+                    <div className="ml-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-sm">
+                        <div className="font-medium text-blue-800">Last Test Result:</div>
+                        <div className="text-blue-700">
+                          Status: {testResults[`/api/${resource}`].status} {testResults[`/api/${resource}`].statusText}
+                        </div>
+                        <div className="text-blue-600 text-xs">
+                          Tested at: {testResults[`/api/${resource}`].timestamp}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {resource !== resources[resources.length - 1] && (
+                    <Separator className="my-6" />
+                  )}
                 </div>
-                
-                <div className="space-y-3 ml-4">
-                  {/* Collection endpoints */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-700">Collection Operations</h4>
-                    
-                    {/* GET Collection */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('GET')}>
-                          {getMethodIcon('GET')}
-                          <span className="ml-1">GET</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}
-                        </code>
-                        <span className="text-xs text-gray-500">Get all items</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => testEndpoint(`/api/${resource}`, 'GET')}
-                          disabled={testingEndpoint === `/api/${resource}`}
-                        >
-                          {testingEndpoint === `/api/${resource}` ? (
-                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                          ) : (
-                            <ExternalLink className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openInNewTab(`/api/${resource}`)}
-                          title="Open in new tab"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* POST Collection */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('POST')}>
-                          {getMethodIcon('POST')}
-                          <span className="ml-1">POST</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}
-                        </code>
-                        <span className="text-xs text-gray-500">Create new item</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Individual item endpoints */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-700">Item Operations</h4>
-                    
-                    {/* GET Item */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('GET')}>
-                          {getMethodIcon('GET')}
-                          <span className="ml-1">GET</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}/[id]
-                        </code>
-                        <span className="text-xs text-gray-500">Get specific item</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* PUT Item */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('PUT')}>
-                          {getMethodIcon('PUT')}
-                          <span className="ml-1">PUT</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}/[id]
-                        </code>
-                        <span className="text-xs text-gray-500">Replace entire item</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* PATCH Item */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('PATCH')}>
-                          {getMethodIcon('PATCH')}
-                          <span className="ml-1">PATCH</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}/[id]
-                        </code>
-                        <span className="text-xs text-gray-500">Partial update</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* DELETE Item */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={getMethodColor('DELETE')}>
-                          {getMethodIcon('DELETE')}
-                          <span className="ml-1">DELETE</span>
-                        </Badge>
-                        <code className="text-sm font-mono">
-                          {baseUrl}/api/{resource}/[id]
-                        </code>
-                        <span className="text-xs text-gray-500">Delete item</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(`${baseUrl}/api/${resource}/[id]`)}
-                        >
-                          {copiedEndpoint === `${baseUrl}/api/${resource}/[id]` ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Show test results if available */}
-                {testResults[`/api/${resource}`] && (
-                  <div className="ml-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-sm">
-                      <div className="font-medium text-blue-800">Last Test Result:</div>
-                      <div className="text-blue-700">
-                        Status: {testResults[`/api/${resource}`].status} {testResults[`/api/${resource}`].statusText}
-                      </div>
-                      <div className="text-blue-600 text-xs">
-                        Tested at: {testResults[`/api/${resource}`].timestamp}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {resource !== resources[resources.length - 1] && (
-                  <Separator className="my-6" />
-                )}
-              </div>
-            ))}
+              );
+            })}
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p><strong>Full CRUD Operations with Real-time Monitoring:</strong></p>
+                  <p><strong>Customized CRUD Operations with Real-time Monitoring:</strong></p>
                   <ul className="text-sm space-y-1 ml-4">
-                    <li>• <strong>GET</strong> - Retrieve data (collections and individual items)</li>
-                    <li>• <strong>POST</strong> - Create new items with automatic ID generation</li>
-                    <li>• <strong>PUT</strong> - Replace entire items with validation</li>
-                    <li>• <strong>PATCH</strong> - Update specific fields only</li>
-                    <li>• <strong>DELETE</strong> - Remove items permanently</li>
-                    <li>• <strong>Analytics</strong> - Real-time monitoring and performance tracking</li>
+                    <li>• <strong>Selected Endpoints Only</strong> - Only the endpoints you chose are available</li>
+                    <li>• <strong>Full Validation</strong> - All operations include comprehensive validation</li>
+                    <li>• <strong>Automatic Management</strong> - ID generation and timestamp handling</li>
+                    <li>• <strong>Real-time Analytics</strong> - Monitor all API calls and performance</li>
+                    <li>• <strong>Interactive Documentation</strong> - Swagger UI shows only enabled endpoints</li>
                   </ul>
                   <p className="text-sm mt-2">
                     All operations include comprehensive validation, automatic timestamp management, and real-time analytics tracking.
@@ -485,6 +624,21 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                 </div>
               </AlertDescription>
             </Alert>
+
+            {/* Option to reconfigure */}
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={() => {
+                  setGeneratedEndpoints(null);
+                  setShowEndpointSelection(true);
+                }}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Reconfigure Endpoints
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
