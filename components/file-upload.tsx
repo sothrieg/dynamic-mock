@@ -346,7 +346,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
             ) : (
               <>
                 <Trash2 className="h-4 w-4" />
-                Reset All Files & Endpoints
+                Reset All Files, Endpoints and Analytics
               </>
             )}
           </Button>
