@@ -57,22 +57,8 @@ export function withAnalytics<T extends any[]>(
 ) {
   return async (...args: T): Promise<NextResponse> => {
     const startTime = Date.now();
-    let response: NextResponse;
-    let error: string | undefined;
-
-    try {
-      response = await handler(...args);
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Unknown error';
-      response = NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
-    }
-
-    const responseTime = Date.now() - startTime;
     
-    // Extract request information from the first argument (should be NextRequest)
+    // Extract request information BEFORE awaiting handler
     const request = args[0] as NextRequest;
     const method = request.method;
     const path = request.nextUrl.pathname;
@@ -96,7 +82,22 @@ export function withAnalytics<T extends any[]>(
       ? parseInt(request.headers.get('content-length')!) 
       : undefined;
 
-    // Log the request
+    let response: NextResponse;
+    let error: string | undefined;
+
+    try {
+      response = await handler(...args);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Unknown error';
+      response = NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
+
+    const responseTime = Date.now() - startTime;
+
+    // Log the request - prioritize caught exceptions over HTTP status errors
     analytics.logRequest({
       method,
       path,
@@ -107,7 +108,7 @@ export function withAnalytics<T extends any[]>(
       userAgent,
       ip,
       requestSize,
-      error
+      error: error || (response.status >= 400 ? `HTTP ${response.status}` : undefined)
     });
 
     return response;
