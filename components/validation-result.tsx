@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EndpointSelection } from '@/components/endpoint-selection';
 
@@ -37,6 +37,27 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
   const [generatedEndpoints, setGeneratedEndpoints] = useState<EndpointConfig[] | null>(null);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  // Load existing endpoint configuration on mount
+  useEffect(() => {
+    const loadExistingConfig = async () => {
+      try {
+        const response = await fetch('/api/endpoint-config');
+        if (response.ok) {
+          const config = await response.json();
+          if (config && config.length > 0) {
+            setGeneratedEndpoints(config);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load existing endpoint config:', error);
+      }
+    };
+
+    if (isValid && resources.length > 0) {
+      loadExistingConfig();
+    }
+  }, [isValid, resources]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -354,6 +375,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
               resources={resources}
               onGenerate={handleGenerateEndpoints}
               isGenerating={isGenerating}
+              currentConfig={null}
             />
           )}
         </div>
@@ -836,7 +858,6 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             <div className="flex justify-center pt-4">
               <Button
                 onClick={() => {
-                  setGeneratedEndpoints(null);
                   setShowEndpointSelection(true);
                 }}
                 variant="outline"
@@ -846,6 +867,18 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                 Reconfigure Endpoints
               </Button>
             </div>
+
+            {/* Show endpoint selection when reconfiguring */}
+            {showEndpointSelection && (
+              <div className="mt-6">
+                <EndpointSelection
+                  resources={resources}
+                  onGenerate={handleGenerateEndpoints}
+                  isGenerating={isGenerating}
+                  currentConfig={generatedEndpoints}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

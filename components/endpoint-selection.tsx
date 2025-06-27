@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,11 +35,17 @@ interface EndpointSelectionProps {
   resources: string[];
   onGenerate: (selectedEndpoints: EndpointConfig[]) => void;
   isGenerating?: boolean;
+  currentConfig?: EndpointConfig[] | null;
 }
 
-export function EndpointSelection({ resources, onGenerate, isGenerating = false }: EndpointSelectionProps) {
-  const [endpointConfigs, setEndpointConfigs] = useState<EndpointConfig[]>(() =>
-    resources.map(resource => ({
+export function EndpointSelection({ resources, onGenerate, isGenerating = false, currentConfig = null }: EndpointSelectionProps) {
+  const [endpointConfigs, setEndpointConfigs] = useState<EndpointConfig[]>(() => {
+    // If we have current config, use it; otherwise default to all enabled
+    if (currentConfig && currentConfig.length > 0) {
+      return currentConfig;
+    }
+    
+    return resources.map(resource => ({
       resource,
       endpoints: {
         'GET_collection': true,
@@ -49,8 +55,15 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false 
         'PATCH_item': true,
         'DELETE_item': true,
       }
-    }))
-  );
+    }));
+  });
+
+  // Update configs when currentConfig changes
+  useEffect(() => {
+    if (currentConfig && currentConfig.length > 0) {
+      setEndpointConfigs(currentConfig);
+    }
+  }, [currentConfig]);
 
   const getMethodInfo = (method: string) => {
     switch (method) {
@@ -175,10 +188,13 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          Select API Endpoints to Generate
+          {currentConfig ? 'Reconfigure API Endpoints' : 'Select API Endpoints to Generate'}
         </CardTitle>
         <CardDescription>
-          Choose which REST endpoints you want to create for each resource. You can customize your API to include only the operations you need.
+          {currentConfig 
+            ? 'Modify which REST endpoints are active for each resource. Changes will update your existing API configuration.'
+            : 'Choose which REST endpoints you want to create for each resource. You can customize your API to include only the operations you need.'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -190,6 +206,11 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false 
             </div>
             <div className="text-sm text-blue-700">
               Across {resources.length} resource{resources.length !== 1 ? 's' : ''}
+              {currentConfig && (
+                <span className="block text-blue-600 font-medium">
+                  🔄 Reconfiguring existing API
+                </span>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
@@ -342,12 +363,15 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false 
             {isGenerating ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                Generating Selected Endpoints...
+                {currentConfig ? 'Updating Configuration...' : 'Generating Selected Endpoints...'}
               </>
             ) : (
               <>
                 <Zap className="h-4 w-4 mr-2" />
-                Generate {getSelectedCount()} Selected Endpoint{getSelectedCount() !== 1 ? 's' : ''}
+                {currentConfig 
+                  ? `Update ${getSelectedCount()} Selected Endpoint${getSelectedCount() !== 1 ? 's' : ''}`
+                  : `Generate ${getSelectedCount()} Selected Endpoint${getSelectedCount() !== 1 ? 's' : ''}`
+                }
               </>
             )}
           </Button>
@@ -358,16 +382,19 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false 
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-2">
-              <p><strong>Endpoint Selection Benefits:</strong></p>
+              <p><strong>{currentConfig ? 'Endpoint Reconfiguration' : 'Endpoint Selection'} Benefits:</strong></p>
               <ul className="text-sm space-y-1 ml-4">
-                <li>• <strong>Customized API</strong> - Generate only the endpoints you need</li>
+                <li>• <strong>Customized API</strong> - {currentConfig ? 'Modify' : 'Generate'} only the endpoints you need</li>
                 <li>• <strong>Cleaner Documentation</strong> - Swagger docs show only selected endpoints</li>
                 <li>• <strong>Better Security</strong> - Reduce attack surface by limiting available operations</li>
                 <li>• <strong>Focused Development</strong> - Work with a streamlined API that matches your use case</li>
                 <li>• <strong>Performance</strong> - Fewer endpoints mean faster API discovery and testing</li>
               </ul>
               <p className="text-sm mt-2">
-                You can always come back and generate additional endpoints later by re-uploading your files.
+                {currentConfig 
+                  ? 'Changes will take effect immediately and update your existing API configuration.'
+                  : 'You can always come back and generate additional endpoints later by re-uploading your files.'
+                }
               </p>
             </div>
           </AlertDescription>
