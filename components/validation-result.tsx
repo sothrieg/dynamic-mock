@@ -17,6 +17,8 @@ interface ValidationResultProps {
 
 export function ValidationResult({ isValid, errors, resources }: ValidationResultProps) {
   const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
+  const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, any>>({});
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -30,14 +32,54 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
     }
   };
 
-  const testEndpoint = async (endpoint: string) => {
+  const testEndpoint = async (endpoint: string, method: string = 'GET') => {
+    setTestingEndpoint(endpoint);
     try {
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       const data = await response.json();
-      console.log('API Response:', data);
-      // You could show a modal or toast with the response
+      const result = {
+        status: response.status,
+        statusText: response.statusText,
+        data: data,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setTestResults(prev => ({
+        ...prev,
+        [endpoint]: result
+      }));
+      
+      console.log('API Test Result:', result);
+      
+      // Show a simple alert with the result
+      if (response.ok) {
+        alert(`✅ Success!\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2).substring(0, 200)}${JSON.stringify(data, null, 2).length > 200 ? '...' : ''}`);
+      } else {
+        alert(`❌ Error!\nStatus: ${response.status}\nMessage: ${data.error || 'Unknown error'}`);
+      }
     } catch (err) {
+      const errorResult = {
+        status: 0,
+        statusText: 'Network Error',
+        data: { error: err instanceof Error ? err.message : 'Unknown error' },
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setTestResults(prev => ({
+        ...prev,
+        [endpoint]: errorResult
+      }));
+      
       console.error('Failed to test endpoint:', err);
+      alert(`❌ Network Error!\n${err instanceof Error ? err.message : 'Failed to connect to the API'}`);
+    } finally {
+      setTestingEndpoint(null);
     }
   };
 
@@ -72,6 +114,10 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
       default:
         return <ExternalLink className="h-3 w-3" />;
     }
+  };
+
+  const openInNewTab = (endpoint: string) => {
+    window.open(endpoint, '_blank');
   };
 
   return (
@@ -235,7 +281,20 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => testEndpoint(`/api/${resource}`)}
+                          onClick={() => testEndpoint(`/api/${resource}`, 'GET')}
+                          disabled={testingEndpoint === `/api/${resource}`}
+                        >
+                          {testingEndpoint === `/api/${resource}` ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                          ) : (
+                            <ExternalLink className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openInNewTab(`/api/${resource}`)}
+                          title="Open in new tab"
                         >
                           <ExternalLink className="h-3 w-3" />
                         </Button>
@@ -384,6 +443,21 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                   </div>
                 </div>
 
+                {/* Show test results if available */}
+                {testResults[`/api/${resource}`] && (
+                  <div className="ml-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm">
+                      <div className="font-medium text-blue-800">Last Test Result:</div>
+                      <div className="text-blue-700">
+                        Status: {testResults[`/api/${resource}`].status} {testResults[`/api/${resource}`].statusText}
+                      </div>
+                      <div className="text-blue-600 text-xs">
+                        Tested at: {testResults[`/api/${resource}`].timestamp}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {resource !== resources[resources.length - 1] && (
                   <Separator className="my-6" />
                 )}
@@ -405,6 +479,8 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                   </ul>
                   <p className="text-sm mt-2">
                     All operations include comprehensive validation, automatic timestamp management, and real-time analytics tracking.
+                    <br />
+                    <strong>💡 Tip:</strong> Click the test button (🔗) next to GET endpoints to see live data, or use the "Open in new tab" button to view the JSON response directly.
                   </p>
                 </div>
               </AlertDescription>
