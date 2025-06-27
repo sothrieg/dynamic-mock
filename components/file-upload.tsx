@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileJson, AlertCircle, CheckCircle, Info, Download } from 'lucide-react';
+import { Upload, FileJson, AlertCircle, CheckCircle, Info, Download, RotateCcw, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { createSampleSchemaWithFormats, createSampleJsonData } from '@/lib/validation';
+import { fileStore } from '@/lib/file-store';
 
 interface FileUploadProps {
   onValidation: (result: { isValid: boolean; errors: string[]; resources: string[] }) => void;
@@ -17,6 +18,33 @@ export function FileUpload({ onValidation }: FileUploadProps) {
   const [schemaFile, setSchemaFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState<'json' | 'schema' | null>(null);
+  const [hasPersistedData, setHasPersistedData] = useState(false);
+
+  // Load persisted files on component mount
+  useEffect(() => {
+    const loadPersistedFiles = async () => {
+      const stored = await fileStore.loadFiles();
+      if (stored.jsonFile || stored.schemaFile) {
+        setJsonFile(stored.jsonFile);
+        setSchemaFile(stored.schemaFile);
+        setHasPersistedData(true);
+        
+        // If we have a validation result, trigger the callback
+        if (stored.validationResult) {
+          onValidation(stored.validationResult);
+        }
+      }
+    };
+
+    loadPersistedFiles();
+  }, [onValidation]);
+
+  // Save files whenever they change
+  useEffect(() => {
+    if (jsonFile || schemaFile) {
+      fileStore.saveFiles(jsonFile, schemaFile);
+    }
+  }, [jsonFile, schemaFile]);
 
   const handleDrag = useCallback((e: React.DragEvent, type: 'json' | 'schema') => {
     e.preventDefault();
@@ -41,6 +69,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
         } else {
           setSchemaFile(file);
         }
+        setHasPersistedData(false);
       }
     }
   }, []);
@@ -53,6 +82,7 @@ export function FileUpload({ onValidation }: FileUploadProps) {
       } else {
         setSchemaFile(file);
       }
+      setHasPersistedData(false);
     }
   };
 
@@ -71,15 +101,47 @@ export function FileUpload({ onValidation }: FileUploadProps) {
       });
 
       const result = await response.json();
+      
+      // Save validation result to persistence
+      await fileStore.saveFiles(jsonFile, schemaFile, result);
+      
       onValidation(result);
+      setHasPersistedData(false);
     } catch (error) {
-      onValidation({
+      const errorResult = {
         isValid: false,
         errors: ['Failed to validate files'],
         resources: []
-      });
+      };
+      onValidation(errorResult);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    // Clear files from state
+    setJsonFile(null);
+    setSchemaFile(null);
+    setHasPersistedData(false);
+    
+    // Clear from persistence
+    fileStore.clearFiles();
+    
+    // Clear validation result
+    onValidation({
+      isValid: false,
+      errors: [],
+      resources: []
+    });
+
+    // Clear any generated API data
+    try {
+      await fetch('/api/validate', {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error clearing API data:', error);
     }
   };
 
@@ -136,6 +198,12 @@ export function FileUpload({ onValidation }: FileUploadProps) {
               <CheckCircle className="h-8 w-8 text-green-500 mx-auto" />
               <p className="text-sm font-medium text-green-700">{file.name}</p>
               <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+              {hasPersistedData && (
+                <p className="text-xs text-blue-600 flex items-center justify-center gap-1">
+                  <RotateCcw className="h-3 w-3" />
+                  Restored from previous session
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -166,6 +234,20 @@ export function FileUpload({ onValidation }: FileUploadProps) {
         </p>
       </div>
 
+      {/* Reset Button - Show when files are present */}
+      {(jsonFile || schemaFile) && (
+        <div className="flex justify-center">
+          <Button 
+            onClick={handleReset}
+            variant="outline"
+            className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            Reset All Files & Endpoints
+          </Button>
+        </div>
+      )}
+
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
@@ -174,6 +256,11 @@ export function FileUpload({ onValidation }: FileUploadProps) {
             <p className="text-sm">
               Your JSON Schema can now include format validation for email, URI, date, date-time, 
               phone numbers, and more. The validator will provide detailed error messages for format violations.
+              {hasPersistedData && (
+                <span className="block mt-2 text-blue-600 font-medium">
+                  📁 Files from your previous session have been restored automatically.
+                </span>
+              )}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button 

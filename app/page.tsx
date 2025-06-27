@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileUpload } from '@/components/file-upload';
 import { ValidationResult } from '@/components/validation-result';
 
@@ -23,6 +23,15 @@ export default function Home() {
     setValidationState({
       ...result,
       hasResult: true
+    });
+  };
+
+  const handleReset = () => {
+    setValidationState({
+      isValid: false,
+      errors: [],
+      resources: [],
+      hasResult: false
     });
   };
 

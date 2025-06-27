@@ -73,4 +73,22 @@ async function handlePOST(request: NextRequest) {
   }
 }
 
+async function handleDELETE(request: NextRequest) {
+  try {
+    // Clear the data store
+    dataStore.clear();
+    
+    return NextResponse.json({
+      message: 'All data and endpoints have been cleared successfully'
+    });
+  } catch (error) {
+    console.error('Error clearing data:', error);
+    return NextResponse.json(
+      { error: 'Failed to clear data' },
+      { status: 500 }
+    );
+  }
+}
+
 export const POST = withAnalytics(handlePOST);
+export const DELETE = withAnalytics(handleDELETE);
