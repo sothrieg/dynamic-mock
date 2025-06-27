@@ -40,11 +40,12 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const body = await request.json().catch(() => ({}));
+    const clearAll = searchParams.get('clearAll') === 'true';
     
-    if (body.clearAll) {
+    if (clearAll) {
       // Clear all analytics data completely
       analytics.clearAllData();
+      console.log('✅ Analytics: All data cleared completely');
       return NextResponse.json({ 
         message: 'All analytics data has been cleared completely' 
       });
@@ -52,6 +53,7 @@ export async function DELETE(request: NextRequest) {
       // Clear old data (existing functionality)
       const days = parseInt(searchParams.get('days') || '7');
       analytics.clearOldData(days);
+      console.log(`✅ Analytics: Cleared data older than ${days} days`);
       return NextResponse.json({ 
         message: `Cleared data older than ${days} days` 
       });

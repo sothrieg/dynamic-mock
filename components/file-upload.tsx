@@ -144,20 +144,27 @@ export function FileUpload({ onValidation }: FileUploadProps) {
         // Clear API data
         fetch('/api/validate', {
           method: 'DELETE'
-        }),
-        // Clear analytics data
-        fetch('/api/analytics', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ clearAll: true })
-        })
+        }).catch(err => console.error('Error clearing API data:', err)),
+        
+        // Clear analytics data with query parameter
+        fetch('/api/analytics?clearAll=true', {
+          method: 'DELETE'
+        }).catch(err => console.error('Error clearing analytics:', err))
       ];
 
-      await Promise.all(clearPromises);
+      const results = await Promise.allSettled(clearPromises);
       
-      console.log('✅ All data cleared: Files, API endpoints, and analytics');
+      // Log results for debugging
+      results.forEach((result, index) => {
+        const operation = index === 0 ? 'API data' : 'Analytics data';
+        if (result.status === 'fulfilled') {
+          console.log(`✅ ${operation} cleared successfully`);
+        } else {
+          console.error(`❌ Failed to clear ${operation}:`, result.reason);
+        }
+      });
+      
+      console.log('✅ Reset completed: Files, API endpoints, and analytics');
       
     } catch (error) {
       console.error('Error during reset:', error);
