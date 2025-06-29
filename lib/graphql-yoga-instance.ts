@@ -46,6 +46,9 @@ export function getYogaInstance() {
     const yoga = createYoga({
       schema,
       rootValue: resolvers,
+      context: ({ request }) => ({
+        headers: request.headers,
+      }),
       graphiql: {
         title: 'JSON Schema API - GraphQL Playground',
         defaultQuery: `# Welcome to your GraphQL API!
@@ -67,6 +70,8 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
 #     # Add fields you want returned
 #   }
 # }`,
+        // Disable GraphiQL to avoid React compatibility issues
+        enabled: false,
       },
       cors: {
         origin: '*',
@@ -108,6 +113,9 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
       rootValue: {
         _error: () => `GraphQL schema generation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your JSON data and schema.`,
       },
+      context: ({ request }) => ({
+        headers: request.headers,
+      }),
       graphiql: {
         title: 'GraphQL Error - Please Check Your Data',
         defaultQuery: `# GraphQL Schema Generation Failed
@@ -119,6 +127,7 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
 query {
   _error
 }`,
+        enabled: false,
       },
       cors: {
         origin: '*',

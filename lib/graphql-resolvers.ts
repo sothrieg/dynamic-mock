@@ -15,9 +15,8 @@ export function createGraphQLResolvers() {
   const resources = Object.keys(store.data).filter(key => Array.isArray(store.data[key]));
 
   resources.forEach(resource => {
-    const resourceData = store.data[resource];
-    if (!Array.isArray(resourceData)) return;
-
+    const resourceData = Array.isArray(store.data[resource]) ? store.data[resource] : [];
+    
     const singularName = resource.slice(0, -1); // Remove 's'
     const typeName = capitalizeFirst(singularName);
 
@@ -32,10 +31,12 @@ export function createGraphQLResolvers() {
           responseTime: 0,
         });
         
-        return resourceData;
+        // Always return an array, even if empty
+        return resourceData || [];
       } catch (error) {
         console.error(`Error fetching ${resource}:`, error);
-        throw new Error(`Failed to fetch ${resource}`);
+        // Return empty array instead of throwing to prevent null return
+        return [];
       }
     };
 
