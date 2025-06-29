@@ -1,6 +1,5 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { invalidateYogaCache } from './graphql-yoga-instance';
 
 // In-memory data store for uploaded JSON data
 interface DataStore {
@@ -90,9 +89,6 @@ class DataStoreManager {
     
     // Save to file for persistence
     this.saveToFile();
-    
-    // Invalidate GraphQL cache when data changes
-    invalidateYogaCache();
   }
 
   getData() {
@@ -178,9 +174,6 @@ class DataStoreManager {
     } catch (error) {
       console.error('Error clearing data file:', error);
     }
-    
-    // Invalidate GraphQL cache when data is cleared
-    invalidateYogaCache();
   }
 
   // Method to check if we have valid data

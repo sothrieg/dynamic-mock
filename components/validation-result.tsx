@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X, Zap } from 'lucide-react';
+import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EndpointSelection } from '@/components/endpoint-selection';
@@ -329,42 +329,21 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* REST API Documentation */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-                <div className="space-y-1">
-                  <p className="font-medium text-gray-900">
-                    REST API Documentation
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Interactive Swagger UI for REST endpoints
-                  </p>
-                </div>
-                <Link href="/swagger">
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    <FileText className="h-4 w-4 mr-2" />
-                    REST Docs
-                  </Button>
-                </Link>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
+              <div className="space-y-1">
+                <p className="font-medium text-gray-900">
+                  REST API Documentation
+                </p>
+                <p className="text-sm text-gray-600">
+                  Interactive Swagger UI for REST endpoints with live testing
+                </p>
               </div>
-
-              {/* GraphQL API Documentation */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border">
-                <div className="space-y-1">
-                  <p className="font-medium text-gray-900">
-                    GraphQL API
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Type-safe GraphQL with playground
-                  </p>
-                </div>
-                <Link href="/graphql">
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                    <Zap className="h-4 w-4 mr-2" />
-                    GraphQL
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/swagger">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Documentation
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -866,7 +845,6 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                     <li>• <strong>Automatic Management</strong> - ID generation and timestamp handling</li>
                     <li>• <strong>Real-time Analytics</strong> - Monitor all API calls and performance</li>
                     <li>• <strong>Interactive Documentation</strong> - Swagger UI shows only enabled endpoints</li>
-                    <li>• <strong>GraphQL Support</strong> - Type-safe GraphQL API with playground</li>
                   </ul>
                   <p className="text-sm mt-2">
                     All operations include comprehensive validation, automatic timestamp management, and real-time analytics tracking.
