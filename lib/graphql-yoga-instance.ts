@@ -42,11 +42,10 @@ export function getYogaInstance() {
     const store = dataStore.getData();
     const sampleResource = store.resources?.[0] || 'items';
     
-    // Create new Yoga instance with proper Next.js integration
+    // Create new Yoga instance with proper configuration
     const yoga = createYoga({
       schema,
       rootValue: resolvers,
-      // Remove problematic context function that tries to access headers
       graphiql: {
         title: 'JSON Schema API - GraphQL Playground',
         defaultQuery: `# Welcome to your GraphQL API!
@@ -68,7 +67,7 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
 #     # Add fields you want returned
 #   }
 # }`,
-        enabled: true, // Re-enable GraphiQL
+        enabled: true,
       },
       cors: {
         origin: '*',
@@ -76,12 +75,12 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
       },
-      // Use proper fetch API configuration for Next.js
-      fetchAPI: {
-        Request: globalThis.Request,
-        Response: globalThis.Response,
-        Headers: globalThis.Headers,
-      },
+      // Disable batching to avoid complexity
+      batching: false,
+      // Add proper error handling
+      maskedErrors: false,
+      // Use standard fetch API
+      fetchAPI: globalThis,
     });
 
     // Cache the instance
@@ -130,11 +129,9 @@ query {
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
       },
-      fetchAPI: {
-        Request: globalThis.Request,
-        Response: globalThis.Response,
-        Headers: globalThis.Headers,
-      },
+      batching: false,
+      maskedErrors: false,
+      fetchAPI: globalThis,
     });
 
     return fallbackYoga;

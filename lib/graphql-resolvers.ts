@@ -34,7 +34,9 @@ export function createGraphQLResolvers() {
         
         // CRITICAL: Always return an array, never null or undefined
         const currentData = dataStore.getData().data[resource];
-        return Array.isArray(currentData) ? currentData : [];
+        const result = Array.isArray(currentData) ? currentData : [];
+        console.log(`GraphQL Query ${resource}:`, result.length, 'items');
+        return result;
       } catch (error) {
         console.error(`Error fetching ${resource}:`, error);
         // Return empty array instead of throwing to prevent null return
@@ -67,6 +69,7 @@ export function createGraphQLResolvers() {
           throw new Error(`${typeName} with id '${args.id}' not found`);
         }
 
+        console.log(`GraphQL Query ${singularName}(${args.id}):`, item);
         return item;
       } catch (error) {
         console.error(`Error fetching ${singularName}:`, error);
@@ -128,6 +131,7 @@ export function createGraphQLResolvers() {
           responseTime: 0,
         });
 
+        console.log(`GraphQL Mutation create${typeName}:`, newItem);
         return newItem;
       } catch (error) {
         console.error(`Error creating ${typeName}:`, error);
@@ -209,6 +213,7 @@ export function createGraphQLResolvers() {
           responseTime: 0,
         });
 
+        console.log(`GraphQL Mutation update${typeName}(${args.id}):`, updatedItem);
         return updatedItem;
       } catch (error) {
         console.error(`Error updating ${typeName}:`, error);
@@ -257,6 +262,7 @@ export function createGraphQLResolvers() {
           responseTime: 0,
         });
 
+        console.log(`GraphQL Mutation delete${typeName}(${args.id}): success`);
         return true;
       } catch (error) {
         console.error(`Error deleting ${typeName}:`, error);
@@ -265,6 +271,7 @@ export function createGraphQLResolvers() {
     };
   });
 
+  console.log('GraphQL Resolvers created for resources:', resources);
   return resolvers;
 }
 
