@@ -89,7 +89,7 @@ export function generateGraphQLSchema(): string {
       const inputType = generateInputType(inputTypeName, sampleItem);
       schema += inputType + '\n\n';
 
-      // Add query fields
+      // Add query fields - make them non-nullable arrays to prevent null returns
       queryFields += `  ${resource}: [${typeName}!]!\n`;
       queryFields += `  ${resource.slice(0, -1)}(id: ID!): ${typeName}\n`;
 
@@ -282,7 +282,7 @@ class GraphQLSchemaGenerator {
           description: `Delete a ${typeName}`
         });
 
-        // Add query fields
+        // Add query fields - ensure non-nullable arrays
         queryFields += `  ${resource}: [${typeName}!]!\n`;
         queryFields += `  ${resource.slice(0, -1)}(id: ID!): ${typeName}\n`;
 

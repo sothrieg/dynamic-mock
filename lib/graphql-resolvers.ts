@@ -15,12 +15,13 @@ export function createGraphQLResolvers() {
   const resources = Object.keys(store.data).filter(key => Array.isArray(store.data[key]));
 
   resources.forEach(resource => {
+    // Ensure we always have an array, even if empty
     const resourceData = Array.isArray(store.data[resource]) ? store.data[resource] : [];
     
     const singularName = resource.slice(0, -1); // Remove 's'
     const typeName = capitalizeFirst(singularName);
 
-    // Query resolvers
+    // Query resolvers - ALWAYS return arrays to prevent null errors
     resolvers[resource] = () => {
       try {
         analytics.logRequest({
@@ -31,8 +32,9 @@ export function createGraphQLResolvers() {
           responseTime: 0,
         });
         
-        // Always return an array, even if empty
-        return resourceData || [];
+        // CRITICAL: Always return an array, never null or undefined
+        const currentData = dataStore.getData().data[resource];
+        return Array.isArray(currentData) ? currentData : [];
       } catch (error) {
         console.error(`Error fetching ${resource}:`, error);
         // Return empty array instead of throwing to prevent null return
@@ -42,7 +44,10 @@ export function createGraphQLResolvers() {
 
     resolvers[singularName] = (args: { id: string }) => {
       try {
-        const item = resourceData.find(item => 
+        const currentData = dataStore.getData().data[resource];
+        const safeData = Array.isArray(currentData) ? currentData : [];
+        
+        const item = safeData.find(item => 
           item.id === args.id || 
           item.id === parseInt(args.id) || 
           item._id === args.id ||
@@ -72,11 +77,14 @@ export function createGraphQLResolvers() {
     // Mutation resolvers
     resolvers[`create${typeName}`] = (args: { input: any }) => {
       try {
+        const currentStore = dataStore.getData();
+        const currentData = Array.isArray(currentStore.data[resource]) ? currentStore.data[resource] : [];
+        
         const newItem = { ...args.input };
 
         // Generate ID if not provided
         if (!newItem.id && !newItem._id && !newItem.uuid) {
-          const maxId = resourceData.reduce((max, item) => {
+          const maxId = currentData.reduce((max, item) => {
             const itemId = item.id || item._id || 0;
             return typeof itemId === 'number' ? Math.max(max, itemId) : max;
           }, 0);
@@ -89,7 +97,7 @@ export function createGraphQLResolvers() {
         newItem.updatedAt = now;
 
         // Validate against schema
-        const resourceSchema = store.schema.properties?.[resource];
+        const resourceSchema = currentStore.schema.properties?.[resource];
         if (resourceSchema?.items) {
           const validation = validateJsonWithSchema(newItem, resourceSchema.items);
           if (!validation.isValid) {
@@ -106,11 +114,11 @@ export function createGraphQLResolvers() {
         }
 
         // Add to collection
-        const updatedData = { ...store.data };
-        updatedData[resource] = [...resourceData, newItem];
+        const updatedData = { ...currentStore.data };
+        updatedData[resource] = [...currentData, newItem];
 
         // Update store
-        dataStore.setData(updatedData, store.schema, store.isValid, store.errors);
+        dataStore.setData(updatedData, currentStore.schema, currentStore.isValid, currentStore.errors);
 
         analytics.logRequest({
           method: 'GRAPHQL_MUTATION',
@@ -129,7 +137,10 @@ export function createGraphQLResolvers() {
 
     resolvers[`update${typeName}`] = (args: { id: string; input: any }) => {
       try {
-        const itemIndex = resourceData.findIndex(item => 
+        const currentStore = dataStore.getData();
+        const currentData = Array.isArray(currentStore.data[resource]) ? currentStore.data[resource] : [];
+        
+        const itemIndex = currentData.findIndex(item => 
           item.id === args.id || 
           item.id === parseInt(args.id) || 
           item._id === args.id ||
@@ -149,7 +160,7 @@ export function createGraphQLResolvers() {
           throw new Error(`${typeName} with id '${args.id}' not found`);
         }
 
-        const existingItem = resourceData[itemIndex];
+        const existingItem = currentData[itemIndex];
         const updatedItem = {
           ...existingItem,
           ...args.input,
@@ -164,7 +175,7 @@ export function createGraphQLResolvers() {
         if (existingItem.uuid) updatedItem.uuid = existingItem.uuid;
 
         // Validate against schema
-        const resourceSchema = store.schema.properties?.[resource];
+        const resourceSchema = currentStore.schema.properties?.[resource];
         if (resourceSchema?.items) {
           const validation = validateJsonWithSchema(updatedItem, resourceSchema.items);
           if (!validation.isValid) {
@@ -182,12 +193,12 @@ export function createGraphQLResolvers() {
         }
 
         // Update the item
-        const updatedData = { ...store.data };
-        updatedData[resource] = [...resourceData];
+        const updatedData = { ...currentStore.data };
+        updatedData[resource] = [...currentData];
         updatedData[resource][itemIndex] = updatedItem;
 
         // Update store
-        dataStore.setData(updatedData, store.schema, store.isValid, store.errors);
+        dataStore.setData(updatedData, currentStore.schema, currentStore.isValid, currentStore.errors);
 
         analytics.logRequest({
           method: 'GRAPHQL_MUTATION',
@@ -207,7 +218,10 @@ export function createGraphQLResolvers() {
 
     resolvers[`delete${typeName}`] = (args: { id: string }) => {
       try {
-        const itemIndex = resourceData.findIndex(item => 
+        const currentStore = dataStore.getData();
+        const currentData = Array.isArray(currentStore.data[resource]) ? currentStore.data[resource] : [];
+        
+        const itemIndex = currentData.findIndex(item => 
           item.id === args.id || 
           item.id === parseInt(args.id) || 
           item._id === args.id ||
@@ -228,11 +242,11 @@ export function createGraphQLResolvers() {
         }
 
         // Remove the item
-        const updatedData = { ...store.data };
-        updatedData[resource] = resourceData.filter((_, index) => index !== itemIndex);
+        const updatedData = { ...currentStore.data };
+        updatedData[resource] = currentData.filter((_, index) => index !== itemIndex);
 
         // Update store
-        dataStore.setData(updatedData, store.schema, store.isValid, store.errors);
+        dataStore.setData(updatedData, currentStore.schema, currentStore.isValid, currentStore.errors);
 
         analytics.logRequest({
           method: 'GRAPHQL_MUTATION',

@@ -42,13 +42,11 @@ export function getYogaInstance() {
     const store = dataStore.getData();
     const sampleResource = store.resources?.[0] || 'items';
     
-    // Create new Yoga instance
+    // Create new Yoga instance with proper Next.js integration
     const yoga = createYoga({
       schema,
       rootValue: resolvers,
-      context: ({ request }) => ({
-        headers: request.headers,
-      }),
+      // Remove problematic context function that tries to access headers
       graphiql: {
         title: 'JSON Schema API - GraphQL Playground',
         defaultQuery: `# Welcome to your GraphQL API!
@@ -70,8 +68,7 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
 #     # Add fields you want returned
 #   }
 # }`,
-        // Disable GraphiQL to avoid React compatibility issues
-        enabled: false,
+        enabled: true, // Re-enable GraphiQL
       },
       cors: {
         origin: '*',
@@ -79,6 +76,7 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
       },
+      // Use proper fetch API configuration for Next.js
       fetchAPI: {
         Request: globalThis.Request,
         Response: globalThis.Response,
@@ -113,9 +111,6 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
       rootValue: {
         _error: () => `GraphQL schema generation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your JSON data and schema.`,
       },
-      context: ({ request }) => ({
-        headers: request.headers,
-      }),
       graphiql: {
         title: 'GraphQL Error - Please Check Your Data',
         defaultQuery: `# GraphQL Schema Generation Failed
@@ -127,7 +122,7 @@ query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} 
 query {
   _error
 }`,
-        enabled: false,
+        enabled: true,
       },
       cors: {
         origin: '*',
