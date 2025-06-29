@@ -3,7 +3,6 @@ import { buildSchema } from 'graphql';
 import { generateGraphQLSchema } from './graphql-schema-generator';
 import { createGraphQLResolvers } from './graphql-resolvers';
 import { dataStore } from './data-store';
-import crypto from 'crypto';
 
 interface CachedYogaInstance {
   yoga: ReturnType<typeof createYoga>;
@@ -16,7 +15,9 @@ export function getYogaInstance() {
   try {
     // Generate current schema
     const schemaString = generateGraphQLSchema();
-    const currentHash = crypto.createHash('md5').update(schemaString).digest('hex');
+    
+    // Create a simple hash of the schema
+    const currentHash = Buffer.from(schemaString).toString('base64').slice(0, 32);
     
     // Return cached instance if schema hasn't changed
     if (cachedInstance && cachedInstance.schemaHash === currentHash) {
@@ -26,10 +27,20 @@ export function getYogaInstance() {
     console.log('Creating new GraphQL Yoga instance...');
     
     // Build GraphQL schema
-    const schema = buildSchema(schemaString);
+    let schema;
+    try {
+      schema = buildSchema(schemaString);
+    } catch (schemaError) {
+      console.error('GraphQL schema build error:', schemaError);
+      throw new Error(`Invalid GraphQL schema: ${schemaError}`);
+    }
     
     // Create resolvers
     const resolvers = createGraphQLResolvers();
+    
+    // Get sample queries for the playground
+    const store = dataStore.getData();
+    const sampleResource = store.resources?.[0] || 'items';
     
     // Create new Yoga instance
     const yoga = createYoga({
@@ -40,24 +51,20 @@ export function getYogaInstance() {
         defaultQuery: `# Welcome to your GraphQL API!
 # Try these example queries:
 
-query GetAllUsers {
-  users {
+query GetAll${sampleResource.charAt(0).toUpperCase() + sampleResource.slice(1)} {
+  ${sampleResource} {
     id
-    name
-    email
-    createdAt
+    ${store.data?.[sampleResource]?.[0] ? Object.keys(store.data[sampleResource][0]).slice(0, 3).join('\n    ') : '# Add your fields here'}
   }
 }
 
-# mutation CreateUser {
-#   createUser(input: {
-#     name: "John Doe"
-#     email: "john@example.com"
+# Example mutation (uncomment and modify):
+# mutation Create${sampleResource.slice(0, -1).charAt(0).toUpperCase() + sampleResource.slice(1, -1)} {
+#   create${sampleResource.slice(0, -1).charAt(0).toUpperCase() + sampleResource.slice(1, -1)}(input: {
+#     # Add your input fields here
 #   }) {
 #     id
-#     name
-#     email
-#     createdAt
+#     # Add fields you want returned
 #   }
 # }`,
       },
@@ -80,11 +87,11 @@ query GetAllUsers {
       schemaHash: currentHash,
     };
 
-    console.log('GraphQL Yoga instance created successfully');
+    console.log('✅ GraphQL Yoga instance created successfully');
     return yoga;
     
   } catch (error) {
-    console.error('Error creating GraphQL Yoga instance:', error);
+    console.error('❌ Error creating GraphQL Yoga instance:', error);
     
     // Return a minimal working instance on error
     const fallbackSchema = buildSchema(`
@@ -96,10 +103,22 @@ query GetAllUsers {
       }
     `);
     
-    return createYoga({
+    const fallbackYoga = createYoga({
       schema: fallbackSchema,
       rootValue: {
-        _error: () => 'GraphQL schema generation failed. Please check your JSON data and schema.',
+        _error: () => `GraphQL schema generation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your JSON data and schema.`,
+      },
+      graphiql: {
+        title: 'GraphQL Error - Please Check Your Data',
+        defaultQuery: `# GraphQL Schema Generation Failed
+# Please ensure:
+# 1. You have uploaded valid JSON data
+# 2. Your JSON contains array collections
+# 3. Your JSON schema is valid
+
+query {
+  _error
+}`,
       },
       cors: {
         origin: '*',
@@ -113,11 +132,13 @@ query GetAllUsers {
         Headers: globalThis.Headers,
       },
     });
+
+    return fallbackYoga;
   }
 }
 
 // Function to invalidate cache when data changes
 export function invalidateYogaCache() {
   cachedInstance = null;
-  console.log('GraphQL Yoga cache invalidated');
+  console.log('🔄 GraphQL Yoga cache invalidated');
 }

@@ -1,5 +1,6 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { invalidateYogaCache } from './graphql-yoga-instance';
 
 // In-memory data store for uploaded JSON data
 interface DataStore {
@@ -89,6 +90,36 @@ class DataStoreManager {
     
     // Save to file for persistence
     this.saveToFile();
+    
+    // Invalidate GraphQL cache when data changes
+    invalidateYogaCache();
+  }
+
+  getData() {
+    // Always try to load fresh data from file
+    this.loadFromFile();
+    return this.store;
+  }
+
+  getResource(resourceName: string) {
+    this.loadFromFile();
+    return this.store.data[resourceName] || null;
+  }
+
+  getResourceItem(resourceName: string, id: string) {
+    const resource = this.getResource(resourceName);
+    if (!Array.isArray(resource)) return null;
+    
+    return resource.find(item => 
+      item.id === id || 
+      item.id === parseInt(id) || 
+      item._id === id ||
+      item.uuid === id
+    ) || null;
+  }
+
+  private extractResources(data: Record<string, any>): string[] {
+    return Object.keys(data).filter(key => Array.isArray(data[key]));
   }
 
   setEndpointConfig(config: EndpointConfig[]) {
@@ -127,33 +158,6 @@ class DataStoreManager {
     return endpointKey ? resourceConfig.endpoints[endpointKey] : false;
   }
 
-  getData() {
-    // Always try to load fresh data from file
-    this.loadFromFile();
-    return this.store;
-  }
-
-  getResource(resourceName: string) {
-    this.loadFromFile();
-    return this.store.data[resourceName] || null;
-  }
-
-  getResourceItem(resourceName: string, id: string) {
-    const resource = this.getResource(resourceName);
-    if (!Array.isArray(resource)) return null;
-    
-    return resource.find(item => 
-      item.id === id || 
-      item.id === parseInt(id) || 
-      item._id === id ||
-      item.uuid === id
-    ) || null;
-  }
-
-  private extractResources(data: Record<string, any>): string[] {
-    return Object.keys(data).filter(key => Array.isArray(data[key]));
-  }
-
   clear() {
     this.store = {
       data: {},
@@ -174,6 +178,9 @@ class DataStoreManager {
     } catch (error) {
       console.error('Error clearing data file:', error);
     }
+    
+    // Invalidate GraphQL cache when data is cleared
+    invalidateYogaCache();
   }
 
   // Method to check if we have valid data

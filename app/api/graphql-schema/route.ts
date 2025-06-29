@@ -20,7 +20,7 @@ async function handleGET() {
     
     if (!generatedSchema) {
       return NextResponse.json(
-        { error: 'Failed to generate GraphQL schema from your data.' },
+        { error: 'Failed to generate GraphQL schema from your data. Please ensure your JSON contains array collections.' },
         { status: 500 }
       );
     }
@@ -37,7 +37,7 @@ async function handleGET() {
       resources: store.resources,
       info: {
         title: 'Generated GraphQL API',
-        description: 'GraphQL API generated from uploaded JSON data and schema',
+        description: 'GraphQL API generated from uploaded JSON data and schema with full CRUD operations',
         version: '1.0.0'
       }
     });
@@ -45,7 +45,7 @@ async function handleGET() {
   } catch (error) {
     console.error('GraphQL schema generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate GraphQL schema' },
+      { error: 'Failed to generate GraphQL schema. Please check your data format and try again.' },
       { status: 500 }
     );
   }
