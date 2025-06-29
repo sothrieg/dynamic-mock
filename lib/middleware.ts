@@ -87,12 +87,27 @@ export function withAnalytics<T extends any[]>(
 
     try {
       response = await handler(...args);
+      
+      // Add CORS headers to all API responses to fix Swagger UI issues
+      if (path.startsWith('/api/')) {
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      }
+      
     } catch (err) {
       error = err instanceof Error ? err.message : 'Unknown error';
       response = NextResponse.json(
         { error: 'Internal server error' },
         { status: 500 }
       );
+      
+      // Add CORS headers even to error responses
+      if (path.startsWith('/api/')) {
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      }
     }
 
     const responseTime = Date.now() - startTime;

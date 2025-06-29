@@ -3,6 +3,18 @@ import { dataStore } from '@/lib/data-store';
 import { validateJsonWithSchema } from '@/lib/validation';
 import { withAnalytics } from '@/lib/middleware';
 
+// Handle OPTIONS requests for CORS
+async function handleOPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 async function handleGET(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
@@ -324,6 +336,7 @@ async function handleDELETE(
   }
 }
 
+export const OPTIONS = withAnalytics(handleOPTIONS);
 export const GET = withAnalytics(handleGET);
 export const PUT = withAnalytics(handlePUT);
 export const PATCH = withAnalytics(handlePATCH);
