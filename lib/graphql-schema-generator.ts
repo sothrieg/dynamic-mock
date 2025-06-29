@@ -181,7 +181,7 @@ class GraphQLSchemaGenerator {
       case 'string':
         // Check if it's a date string
         if (this.isDateString(value)) {
-          return 'String'; // GraphQL doesn't have built-in Date, use String with ISO format
+          return 'String!'; // GraphQL doesn't have built-in Date, use String with ISO format
         }
         return 'String!';
       case 'number':
@@ -197,7 +197,7 @@ class GraphQLSchemaGenerator {
 
   private isDateString(value: string): boolean {
     const date = new Date(value);
-    return !isNaN(date.getTime()) && value.includes('T') || value.includes('-');
+    return !isNaN(date.getTime()) && (value.includes('T') || value.includes('-'));
   }
 
   private capitalizeFirst(str: string): string {
@@ -224,8 +224,8 @@ class GraphQLSchemaGenerator {
     // Add scalar types
     schema += `scalar JSON\nscalar DateTime\n\n`;
 
-    // Add types
-    types.forEach(type => {
+    // Add object types (not input types)
+    types.filter(type => !type.name.includes('Input')).forEach(type => {
       if (type.description) {
         schema += `"""${type.description}"""\n`;
       }
@@ -249,7 +249,8 @@ class GraphQLSchemaGenerator {
         if (field.description) {
           schema += `  """${field.description}"""\n`;
         }
-        const fieldType = field.nullable ? field.type.replace('!', '') : field.type;
+        // Make input fields optional by removing the ! from the type
+        const fieldType = field.type.replace('!', '');
         schema += `  ${field.name}: ${fieldType}\n`;
       });
       schema += `}\n\n`;
