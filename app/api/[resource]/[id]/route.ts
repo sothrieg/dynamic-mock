@@ -58,6 +58,46 @@ async function handleGET(
   }
 }
 
+// Helper function to create validation schema with timestamps
+function createValidationSchemaWithTimestamps(
+  originalSchema: any,
+  includeCreatedAt: boolean = false,
+  includeUpdatedAt: boolean = false
+): any {
+  if (!originalSchema) return originalSchema;
+
+  const schema = { ...originalSchema };
+  
+  if (schema.properties && (includeCreatedAt || includeUpdatedAt)) {
+    schema.properties = { ...schema.properties };
+    
+    if (includeCreatedAt && !schema.properties.createdAt) {
+      schema.properties.createdAt = { type: 'string', format: 'date-time' };
+    }
+    
+    if (includeUpdatedAt && !schema.properties.updatedAt) {
+      schema.properties.updatedAt = { type: 'string', format: 'date-time' };
+    }
+  }
+  
+  return schema;
+}
+
+// Helper function to determine timestamp handling strategy
+function getTimestampStrategy(itemSchema: any) {
+  const allowsAdditionalProperties = itemSchema?.additionalProperties !== false;
+  const schemaHasCreatedAt = itemSchema?.properties?.createdAt !== undefined;
+  const schemaHasUpdatedAt = itemSchema?.properties?.updatedAt !== undefined;
+  
+  return {
+    allowsAdditionalProperties,
+    schemaHasCreatedAt,
+    schemaHasUpdatedAt,
+    canAddCreatedAt: allowsAdditionalProperties || schemaHasCreatedAt,
+    canAddUpdatedAt: allowsAdditionalProperties || schemaHasUpdatedAt
+  };
+}
+
 async function handlePUT(
   request: NextRequest,
   { params }: { params: { resource: string; id: string } }
@@ -126,32 +166,23 @@ async function handlePUT(
     // Get the resource schema for validation
     const resourceSchema = store.schema.properties?.[resource];
     let itemSchema = resourceSchema?.items;
-
-    // Check if schema allows additional properties and if timestamps exist in schema
-    const allowsAdditionalProperties = itemSchema?.additionalProperties !== false;
-    const schemaHasUpdatedAt = itemSchema?.properties?.updatedAt !== undefined;
+    const timestampStrategy = getTimestampStrategy(itemSchema);
 
     // Add updatedAt timestamp only if allowed by schema
-    if (allowsAdditionalProperties || schemaHasUpdatedAt) {
+    if (timestampStrategy.canAddUpdatedAt) {
       updatedItem.updatedAt = new Date().toISOString();
     }
 
-    // If schema doesn't allow additional properties and doesn't have updatedAt field,
-    // we need to create a modified schema for validation that includes updatedAt
-    if (!allowsAdditionalProperties && !schemaHasUpdatedAt && updatedItem.updatedAt) {
-      // Create a copy of the schema with updatedAt field added
-      itemSchema = {
-        ...itemSchema,
-        properties: {
-          ...itemSchema.properties,
-          updatedAt: { type: 'string', format: 'date-time' }
-        }
-      };
-    }
+    // Create validation schema with timestamps if needed
+    const validationSchema = createValidationSchemaWithTimestamps(
+      itemSchema,
+      false, // Don't add createdAt for PUT (should be preserved)
+      timestampStrategy.canAddUpdatedAt && !timestampStrategy.schemaHasUpdatedAt
+    );
 
     // Validate against schema
-    if (itemSchema) {
-      const validation = validateJsonWithSchema(updatedItem, itemSchema);
+    if (validationSchema) {
+      const validation = validateJsonWithSchema(updatedItem, validationSchema);
       if (!validation.isValid) {
         return NextResponse.json(
           { 
@@ -244,10 +275,7 @@ async function handlePATCH(
     // Get the resource schema for validation
     const resourceSchema = store.schema.properties?.[resource];
     let itemSchema = resourceSchema?.items;
-
-    // Check if schema allows additional properties and if timestamps exist in schema
-    const allowsAdditionalProperties = itemSchema?.additionalProperties !== false;
-    const schemaHasUpdatedAt = itemSchema?.properties?.updatedAt !== undefined;
+    const timestampStrategy = getTimestampStrategy(itemSchema);
 
     // Merge with existing item (partial update)
     const updatedItem = {
@@ -263,26 +291,20 @@ async function handlePATCH(
     if (existingItem.uuid) updatedItem.uuid = existingItem.uuid;
 
     // Add updatedAt timestamp only if allowed by schema
-    if (allowsAdditionalProperties || schemaHasUpdatedAt) {
+    if (timestampStrategy.canAddUpdatedAt) {
       updatedItem.updatedAt = new Date().toISOString();
     }
 
-    // If schema doesn't allow additional properties and doesn't have updatedAt field,
-    // we need to create a modified schema for validation that includes updatedAt
-    if (!allowsAdditionalProperties && !schemaHasUpdatedAt && updatedItem.updatedAt) {
-      // Create a copy of the schema with updatedAt field added
-      itemSchema = {
-        ...itemSchema,
-        properties: {
-          ...itemSchema.properties,
-          updatedAt: { type: 'string', format: 'date-time' }
-        }
-      };
-    }
+    // Create validation schema with timestamps if needed
+    const validationSchema = createValidationSchemaWithTimestamps(
+      itemSchema,
+      false, // Don't add createdAt for PATCH (should be preserved)
+      timestampStrategy.canAddUpdatedAt && !timestampStrategy.schemaHasUpdatedAt
+    );
 
     // Validate against schema
-    if (itemSchema) {
-      const validation = validateJsonWithSchema(updatedItem, itemSchema);
+    if (validationSchema) {
+      const validation = validateJsonWithSchema(updatedItem, validationSchema);
       if (!validation.isValid) {
         return NextResponse.json(
           { 
