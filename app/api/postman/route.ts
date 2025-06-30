@@ -16,10 +16,22 @@ async function handleGET(request: NextRequest) {
       );
     }
 
-    // Get the current origin for the base URL
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? request.nextUrl.origin 
-      : 'http://localhost:3000';
+    // Get the correct base URL for different environments
+    let baseUrl: string;
+    
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = request.nextUrl.origin;
+    } else {
+      // In development, check if we're in Docker
+      const host = request.headers.get('host') || 'localhost:3000';
+      
+      // If host contains 0.0.0.0, use localhost for better compatibility
+      if (host.includes('0.0.0.0')) {
+        baseUrl = `http://localhost:${host.split(':')[1] || '3000'}`;
+      } else {
+        baseUrl = `http://${host}`;
+      }
+    }
 
     // Get endpoint configuration
     const endpointConfig = dataStore.getEndpointConfig();

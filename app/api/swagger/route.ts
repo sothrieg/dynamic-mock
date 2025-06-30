@@ -15,8 +15,23 @@ async function handleGET(request: NextRequest) {
       );
     }
 
-    // Get the current origin for the server URL - use request origin for local development
-    const baseUrl = request.nextUrl.origin;
+    // Get the correct base URL for different environments
+    let baseUrl: string;
+    
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use the request origin
+      baseUrl = request.nextUrl.origin;
+    } else {
+      // In development, check if we're in Docker
+      const host = request.headers.get('host') || 'localhost:3000';
+      
+      // If host contains 0.0.0.0, replace with localhost for browser compatibility
+      if (host.includes('0.0.0.0')) {
+        baseUrl = `http://localhost:${host.split(':')[1] || '3000'}`;
+      } else {
+        baseUrl = `http://${host}`;
+      }
+    }
 
     // Generate Swagger specification
     const swaggerSpec = {

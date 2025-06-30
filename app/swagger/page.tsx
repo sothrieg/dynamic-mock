@@ -104,7 +104,21 @@ export default function SwaggerPage() {
   };
 
   const generateCurlCommand = (endpoint: ApiEndpoint) => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    // Get the correct base URL for Docker environments
+    let baseUrl = '';
+    if (typeof window !== 'undefined') {
+      const currentHost = window.location.host;
+      const protocol = window.location.protocol;
+      
+      // If we're accessing via 0.0.0.0, replace with localhost for curl examples
+      if (currentHost.includes('0.0.0.0')) {
+        const port = currentHost.split(':')[1] || '3000';
+        baseUrl = `http://localhost:${port}`;
+      } else {
+        baseUrl = `${protocol}//${currentHost}`;
+      }
+    }
+    
     let curl = `curl -X ${endpoint.method} "${baseUrl}${endpoint.path}"`;
     
     if (['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
@@ -223,6 +237,22 @@ export default function SwaggerPage() {
             </div>
           </div>
 
+          {/* Docker Environment Notice */}
+          {typeof window !== 'undefined' && window.location.host.includes('0.0.0.0') && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <div className="space-y-2">
+                  <p className="font-medium">Docker Environment Detected</p>
+                  <p className="text-sm">
+                    You're running in a Docker container. The API is accessible at this URL, but for external access 
+                    you may need to use <code>localhost:3000</code> instead of <code>0.0.0.0:3000</code> in your applications.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* API Overview */}
           {swaggerSpec && (
             <Card>
@@ -314,12 +344,18 @@ export default function SwaggerPage() {
                       tryItOutEnabled={true}
                       supportedSubmitMethods={['get', 'post', 'put', 'patch', 'delete']}
                       requestInterceptor={(request: any) => {
-                        // Ensure proper headers for CORS
+                        // Ensure proper headers for CORS and fix Docker URL issues
                         request.headers = {
                           ...request.headers,
                           'Accept': 'application/json',
                           'Content-Type': request.method !== 'GET' ? 'application/json' : undefined
                         };
+                        
+                        // Fix URL for Docker environments - replace 0.0.0.0 with localhost
+                        if (request.url && request.url.includes('0.0.0.0')) {
+                          request.url = request.url.replace('0.0.0.0', 'localhost');
+                        }
+                        
                         console.log('API Request:', request);
                         return request;
                       }}
