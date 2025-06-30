@@ -39,6 +39,11 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
+  // Check if we're in StackBlitz environment
+  const isStackBlitz = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('stackblitz') || 
+     window.location.hostname.includes('webcontainer'));
+
   // Load existing endpoint configuration on mount
   useEffect(() => {
     const loadExistingConfig = async () => {
@@ -121,40 +126,6 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
     }
   };
 
-  const downloadPostmanCollection = async () => {
-    setIsDownloadingPostman(true);
-    try {
-      const response = await fetch('/api/postman');
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate Postman collection');
-      }
-      
-      const collection = await response.json();
-      
-      // Create and download the file
-      const blob = new Blob([JSON.stringify(collection, null, 2)], { 
-        type: 'application/json' 
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'api-collection.postman_collection.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      alert('✅ Postman collection downloaded successfully!\n\nTo import:\n1. Open Postman\n2. Click "Import"\n3. Select the downloaded file\n4. Start testing your API!');
-    } catch (error) {
-      console.error('Failed to download Postman collection:', error);
-      alert(`❌ Error!\n${error instanceof Error ? error.message : 'Failed to generate Postman collection'}`);
-    } finally {
-      setIsDownloadingPostman(false);
-    }
-  };
-
   const getMethodColor = (method: string) => {
     switch (method.toUpperCase()) {
       case 'GET':
@@ -217,6 +188,70 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
       alert(`❌ Network Error!\nFailed to generate endpoints.`);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const downloadPostmanCollection = async () => {
+    setIsDownloadingPostman(true);
+    try {
+      const response = await fetch('/api/postman');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate Postman collection');
+      }
+      
+      const collection = await response.json();
+      
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(collection, null, 2)], { 
+        type: 'application/json' 
+      });
+      
+      if (isStackBlitz) {
+        // For StackBlitz, open in new tab with data URL
+        const dataUrl = URL.createObjectURL(blob);
+        const newWindow = window.open(dataUrl, '_blank');
+        
+        if (newWindow) {
+          // Set a timeout to show instructions
+          setTimeout(() => {
+            alert('📋 Postman Collection Generated!\n\n' +
+                  'In StackBlitz:\n' +
+                  '1. The collection opened in a new tab\n' +
+                  '2. Copy the JSON content\n' +
+                  '3. Save it as "api-collection.postman_collection.json"\n' +
+                  '4. Import to Postman\n\n' +
+                  'Or copy the JSON from the browser tab and save it locally.');
+          }, 1000);
+        } else {
+          // Fallback: copy to clipboard
+          const text = JSON.stringify(collection, null, 2);
+          await navigator.clipboard.writeText(text);
+          alert('📋 Postman Collection Copied to Clipboard!\n\n' +
+                'The collection JSON has been copied to your clipboard.\n' +
+                '1. Paste it into a new file\n' +
+                '2. Save as "api-collection.postman_collection.json"\n' +
+                '3. Import to Postman');
+        }
+      } else {
+        // Standard download for non-StackBlitz environments
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'api-collection.postman_collection.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Postman collection downloaded successfully!\n\nTo import:\n1. Open Postman\n2. Click "Import"\n3. Select the downloaded file\n4. Start testing your API!');
+      }
+    } catch (error) {
+      console.error('Failed to download Postman collection:', error);
+      alert(`❌ Error!\n${error instanceof Error ? error.message : 'Failed to generate Postman collection'}`);
+    } finally {
+      setIsDownloadingPostman(false);
     }
   };
 
@@ -427,6 +462,11 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
             </CardTitle>
             <CardDescription>
               Download a complete Postman collection with all your API endpoints and examples
+              {isStackBlitz && (
+                <span className="block mt-1 text-blue-600 text-sm">
+                  🌐 StackBlitz detected - Collection will open in new tab for easy copying
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -437,6 +477,11 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                 </p>
                 <p className="text-sm text-gray-600">
                   Complete collection with CRUD operations, examples, and documentation for easy API testing
+                  {isStackBlitz && (
+                    <span className="block mt-1 text-blue-600">
+                      In StackBlitz: Collection will open in new tab for copying
+                    </span>
+                  )}
                 </p>
               </div>
               <Button
@@ -452,11 +497,28 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Download Collection
+                    {isStackBlitz ? 'Generate Collection' : 'Download Collection'}
                   </>
                 )}
               </Button>
             </div>
+            
+            {isStackBlitz && (
+              <Alert className="mt-4 border-blue-200 bg-blue-50">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <div className="space-y-2">
+                    <p className="font-medium">StackBlitz Environment Instructions:</p>
+                    <ol className="text-sm space-y-1 ml-4 list-decimal">
+                      <li>Click "Generate Collection" to open the JSON in a new tab</li>
+                      <li>Copy all the JSON content from the new tab</li>
+                      <li>Save it as "api-collection.postman_collection.json" on your computer</li>
+                      <li>Import the file into Postman to start testing your API</li>
+                    </ol>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       )}
