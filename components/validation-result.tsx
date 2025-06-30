@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X } from 'lucide-react';
+import { CheckCircle, AlertCircle, Globe, Copy, ExternalLink, FileText, Plus, Edit, Trash2, BarChart3, Settings, Check, X, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EndpointSelection } from '@/components/endpoint-selection';
@@ -35,6 +35,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
   const [showEndpointSelection, setShowEndpointSelection] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedEndpoints, setGeneratedEndpoints] = useState<EndpointConfig[] | null>(null);
+  const [isDownloadingPostman, setIsDownloadingPostman] = useState(false);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -117,6 +118,40 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
       alert(`❌ Network Error!\n${err instanceof Error ? err.message : 'Failed to connect to the API'}`);
     } finally {
       setTestingEndpoint(null);
+    }
+  };
+
+  const downloadPostmanCollection = async () => {
+    setIsDownloadingPostman(true);
+    try {
+      const response = await fetch('/api/postman');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate Postman collection');
+      }
+      
+      const collection = await response.json();
+      
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(collection, null, 2)], { 
+        type: 'application/json' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'api-collection.postman_collection.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert('✅ Postman collection downloaded successfully!\n\nTo import:\n1. Open Postman\n2. Click "Import"\n3. Select the downloaded file\n4. Start testing your API!');
+    } catch (error) {
+      console.error('Failed to download Postman collection:', error);
+      alert(`❌ Error!\n${error instanceof Error ? error.message : 'Failed to generate Postman collection'}`);
+    } finally {
+      setIsDownloadingPostman(false);
     }
   };
 
@@ -377,6 +412,50 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                   View Analytics
                 </Button>
               </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5. Export to Postman */}
+      {isValid && generatedEndpoints && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Export to Postman
+            </CardTitle>
+            <CardDescription>
+              Download a complete Postman collection with all your API endpoints and examples
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border">
+              <div className="space-y-1">
+                <p className="font-medium text-gray-900">
+                  Postman Collection Ready
+                </p>
+                <p className="text-sm text-gray-600">
+                  Complete collection with CRUD operations, examples, and documentation for easy API testing
+                </p>
+              </div>
+              <Button
+                onClick={downloadPostmanCollection}
+                disabled={isDownloadingPostman}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              >
+                {isDownloadingPostman ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Collection
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -845,6 +924,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
                     <li>• <strong>Automatic Management</strong> - ID generation and timestamp handling</li>
                     <li>• <strong>Real-time Analytics</strong> - Monitor all API calls and performance</li>
                     <li>• <strong>Interactive Documentation</strong> - Swagger UI shows only enabled endpoints</li>
+                    <li>• <strong>Postman Export</strong> - Download complete collection for easy testing</li>
                   </ul>
                   <p className="text-sm mt-2">
                     All operations include comprehensive validation, automatic timestamp management, and real-time analytics tracking.
