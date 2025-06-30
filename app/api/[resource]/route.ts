@@ -124,15 +124,43 @@ async function handlePOST(
       newItem.id = maxId + 1;
     }
 
-    // Add timestamps
+    // Get the resource schema for validation
+    const resourceSchema = store.schema.properties?.[resource];
+    let itemSchema = resourceSchema?.items;
+
+    // Check if schema allows additional properties and if timestamps exist in schema
+    const allowsAdditionalProperties = itemSchema?.additionalProperties !== false;
+    const schemaHasCreatedAt = itemSchema?.properties?.createdAt !== undefined;
+    const schemaHasUpdatedAt = itemSchema?.properties?.updatedAt !== undefined;
+
+    // Add timestamps only if allowed by schema
     const now = new Date().toISOString();
-    newItem.createdAt = now;
-    newItem.updatedAt = now;
+    
+    if (allowsAdditionalProperties || schemaHasCreatedAt) {
+      newItem.createdAt = now;
+    }
+    
+    if (allowsAdditionalProperties || schemaHasUpdatedAt) {
+      newItem.updatedAt = now;
+    }
+
+    // If schema doesn't allow additional properties and doesn't have timestamp fields,
+    // we need to create a modified schema for validation that includes timestamps
+    if (!allowsAdditionalProperties && (!schemaHasCreatedAt || !schemaHasUpdatedAt)) {
+      // Create a copy of the schema with timestamp fields added
+      itemSchema = {
+        ...itemSchema,
+        properties: {
+          ...itemSchema.properties,
+          ...(newItem.createdAt && !schemaHasCreatedAt ? { createdAt: { type: 'string', format: 'date-time' } } : {}),
+          ...(newItem.updatedAt && !schemaHasUpdatedAt ? { updatedAt: { type: 'string', format: 'date-time' } } : {})
+        }
+      };
+    }
 
     // Validate against schema
-    const resourceSchema = store.schema.properties?.[resource];
-    if (resourceSchema?.items) {
-      const validation = validateJsonWithSchema(newItem, resourceSchema.items);
+    if (itemSchema) {
+      const validation = validateJsonWithSchema(newItem, itemSchema);
       if (!validation.isValid) {
         return NextResponse.json(
           { 

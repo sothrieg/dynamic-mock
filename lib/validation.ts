@@ -89,7 +89,12 @@ export function validateJsonWithSchema(data: any, schema: any): ValidationResult
           case 'enum':
             return `${field}: Must be one of: ${error.params?.allowedValues?.join(', ')}`;
           case 'additionalProperties':
-            return `${field}: Additional property "${error.params?.additionalProperty}" is not allowed`;
+            const additionalProperty = error.params?.additionalProperty;
+            // Special handling for timestamp fields
+            if (additionalProperty === 'createdAt' || additionalProperty === 'updatedAt') {
+              return `${field}: Schema doesn't allow timestamp field "${additionalProperty}". Consider adding it to your schema or setting "additionalProperties": true`;
+            }
+            return `${field}: Additional property "${additionalProperty}" is not allowed`;
           default:
             return `${field}: ${error.message}`;
         }
@@ -130,6 +135,7 @@ export function createSampleSchemaWithFormats() {
             website: { type: "string", format: "uri" },
             birthDate: { type: "string", format: "date" },
             createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
             phone: { type: "string", format: "phone" },
             isActive: { type: "boolean" },
             role: { 
@@ -152,6 +158,8 @@ export function createSampleSchemaWithFormats() {
             description: { type: "string" },
             category: { type: "string" },
             inStock: { type: "boolean" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
             tags: {
               type: "array",
               items: { type: "string" }
@@ -178,6 +186,7 @@ export function createSampleJsonData() {
         website: "https://johndoe.dev",
         birthDate: "1990-05-15",
         createdAt: "2024-01-15T10:30:00Z",
+        updatedAt: "2024-01-15T10:30:00Z",
         phone: "+1234567890",
         isActive: true,
         role: "admin"
@@ -189,6 +198,7 @@ export function createSampleJsonData() {
         website: "https://janesmith.com",
         birthDate: "1985-08-22",
         createdAt: "2024-01-16T14:20:00Z",
+        updatedAt: "2024-01-16T14:20:00Z",
         phone: "+1987654321",
         isActive: true,
         role: "user"
@@ -200,6 +210,7 @@ export function createSampleJsonData() {
         website: "https://bobjohnson.net",
         birthDate: "1992-12-03",
         createdAt: "2024-01-17T09:15:00Z",
+        updatedAt: "2024-01-17T09:15:00Z",
         phone: "+1122334455",
         isActive: false,
         role: "moderator"
@@ -213,6 +224,8 @@ export function createSampleJsonData() {
         description: "High-quality wireless headphones with noise cancellation",
         category: "Electronics",
         inStock: true,
+        createdAt: "2024-01-15T12:00:00Z",
+        updatedAt: "2024-01-15T12:00:00Z",
         tags: ["audio", "wireless", "electronics"]
       },
       {
@@ -222,6 +235,8 @@ export function createSampleJsonData() {
         description: "Durable protective case for smartphones",
         category: "Accessories",
         inStock: true,
+        createdAt: "2024-01-16T15:30:00Z",
+        updatedAt: "2024-01-16T15:30:00Z",
         tags: ["phone", "protection", "accessories"]
       },
       {
@@ -231,6 +246,8 @@ export function createSampleJsonData() {
         description: "Portable Bluetooth speaker with excellent sound quality",
         category: "Electronics",
         inStock: false,
+        createdAt: "2024-01-17T11:45:00Z",
+        updatedAt: "2024-01-17T11:45:00Z",
         tags: ["audio", "bluetooth", "portable"]
       },
       {
@@ -240,6 +257,8 @@ export function createSampleJsonData() {
         description: "Fast charging USB-C cable, 6 feet long",
         category: "Cables",
         inStock: true,
+        createdAt: "2024-01-18T08:20:00Z",
+        updatedAt: "2024-01-18T08:20:00Z",
         tags: ["usb-c", "charging", "cable"]
       }
     ]
