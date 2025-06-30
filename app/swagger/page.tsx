@@ -312,7 +312,14 @@ export default function SwaggerPage() {
                       defaultModelExpandDepth={2}
                       displayRequestDuration={true}
                       tryItOutEnabled={true}
+                      supportedSubmitMethods={['get', 'post', 'put', 'patch', 'delete']}
                       requestInterceptor={(request: any) => {
+                        // Ensure proper headers for CORS
+                        request.headers = {
+                          ...request.headers,
+                          'Accept': 'application/json',
+                          'Content-Type': request.method !== 'GET' ? 'application/json' : undefined
+                        };
                         console.log('API Request:', request);
                         return request;
                       }}

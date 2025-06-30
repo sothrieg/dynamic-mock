@@ -88,26 +88,25 @@ export function withAnalytics<T extends any[]>(
     try {
       response = await handler(...args);
       
-      // Add CORS headers to all API responses to fix Swagger UI issues
-      if (path.startsWith('/api/')) {
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      }
-      
     } catch (err) {
       error = err instanceof Error ? err.message : 'Unknown error';
       response = NextResponse.json(
         { error: 'Internal server error' },
         { status: 500 }
       );
+    }
+
+    // Add comprehensive CORS headers to ALL API responses
+    if (path.startsWith('/api/')) {
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+      response.headers.set('Access-Control-Allow-Credentials', 'false');
+      response.headers.set('Access-Control-Max-Age', '86400');
       
-      // Add CORS headers even to error responses
-      if (path.startsWith('/api/')) {
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      }
+      // Additional headers for better compatibility
+      response.headers.set('Vary', 'Origin');
+      response.headers.set('X-Content-Type-Options', 'nosniff');
     }
 
     const responseTime = Date.now() - startTime;

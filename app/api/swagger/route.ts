@@ -4,7 +4,7 @@ import { withAnalytics } from '@/lib/middleware';
 
 export const dynamic = 'force-dynamic';
 
-async function handleGET() {
+async function handleGET(request: NextRequest) {
   try {
     const store = dataStore.getData();
 
@@ -15,10 +15,8 @@ async function handleGET() {
       );
     }
 
-    // Get the current origin for the server URL
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.com' 
-      : 'http://localhost:3000';
+    // Get the current origin for the server URL - use request origin for local development
+    const baseUrl = request.nextUrl.origin;
 
     // Generate Swagger specification
     const swaggerSpec = {
@@ -447,10 +445,13 @@ async function handleGET() {
 
     const response = NextResponse.json(swaggerSpec);
     
-    // Add CORS headers to allow Swagger UI to make requests
+    // Add comprehensive CORS headers for Swagger UI compatibility
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    response.headers.set('Access-Control-Allow-Credentials', 'false');
+    response.headers.set('Access-Control-Max-Age', '86400');
+    response.headers.set('Vary', 'Origin');
     
     return response;
   } catch (error) {
@@ -460,6 +461,19 @@ async function handleGET() {
       { status: 500 }
     );
   }
+}
+
+async function handleOPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'false',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
 
 function generateSchemaFromObject(obj: any): any {
@@ -501,3 +515,4 @@ function generateSchemaFromObject(obj: any): any {
 }
 
 export const GET = withAnalytics(handleGET);
+export const OPTIONS = withAnalytics(handleOPTIONS);
