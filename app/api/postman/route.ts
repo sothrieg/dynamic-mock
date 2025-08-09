@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
 import { generatePostmanCollection } from '@/lib/postman-generator';
-import { withAnalytics } from '@/lib/middleware';
+import { withAuthAndAnalytics } from '@/lib/middleware';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,5 +74,5 @@ async function handleOPTIONS(request: NextRequest) {
   });
 }
 
-export const GET = withAnalytics(handleGET);
-export const OPTIONS = withAnalytics(handleOPTIONS);
+export const GET = withAuthAndAnalytics(handleGET);
+export const OPTIONS = withAuthAndAnalytics(handleOPTIONS);

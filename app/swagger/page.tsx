@@ -366,7 +366,8 @@ export default function SwaggerPage() {
                           ...request.headers,
                           'Accept': 'application/json',
                           'Content-Type': request.method !== 'GET' ? 'application/json' : undefined,
-                          'X-Forwarded-Proto': window.location.protocol.replace(':', '')
+                          'X-Forwarded-Proto': window.location.protocol.replace(':', ''),
+                          'Authorization': 'Basic ' + btoa('test:test')
                         };
                         
                         // Fix URL for Docker environments - replace 0.0.0.0 with localhost and preserve protocol

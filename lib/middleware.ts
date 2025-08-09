@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analytics } from './analytics';
+import { withBasicAuth, parseBasicAuth, validateCredentials, createAuthChallenge } from './auth';
 
 export function createAnalyticsMiddleware() {
   return async (request: NextRequest, response: NextResponse) => {
@@ -49,6 +50,54 @@ export function createAnalyticsMiddleware() {
     });
 
     return response;
+  };
+}
+
+export function withAuthAndAnalytics<T extends any[]>(
+  handler: (...args: T) => Promise<NextResponse>
+) {
+  return async (...args: T): Promise<NextResponse> => {
+    const request = args[0] as NextRequest;
+    
+    // Skip auth for OPTIONS requests (CORS preflight)
+    if (request.method === 'OPTIONS') {
+      return withAnalytics(handler)(...args);
+    }
+
+    // Check authentication for API routes
+    const authHeader = request.headers.get('Authorization');
+    const credentials = parseBasicAuth(authHeader);
+
+    if (!credentials || !validateCredentials(credentials.username, credentials.password)) {
+      const startTime = Date.now();
+      const path = request.nextUrl.pathname;
+      
+      // Log failed auth attempt
+      analytics.logRequest({
+        method: request.method,
+        path,
+        statusCode: 401,
+        responseTime: Date.now() - startTime,
+        userAgent: request.headers.get('user-agent') || undefined,
+        ip: request.headers.get('x-forwarded-for') || 
+            request.headers.get('x-real-ip') || 
+            'unknown',
+        error: 'Authentication failed'
+      });
+
+      return new NextResponse('Unauthorized', {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': 'Basic realm="JSON Schema API", charset="UTF-8"',
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+        },
+      });
+    }
+
+    return withAnalytics(handler)(...args);
   };
 }
 

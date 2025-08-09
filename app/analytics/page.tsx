@@ -81,7 +81,11 @@ export default function AnalyticsPage() {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('/api/analytics?type=metrics');
+      const response = await fetch('/api/analytics?type=metrics', {
+        headers: {
+          'Authorization': 'Basic ' + btoa('test:test'),
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch metrics');
       const data = await response.json();
       setMetrics(data);
@@ -92,7 +96,11 @@ export default function AnalyticsPage() {
 
   const fetchRecentRequests = async () => {
     try {
-      const response = await fetch('/api/analytics?type=requests&limit=50');
+      const response = await fetch('/api/analytics?type=requests&limit=50', {
+        headers: {
+          'Authorization': 'Basic ' + btoa('test:test'),
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch requests');
       const data = await response.json();
       setRecentRequests(data);

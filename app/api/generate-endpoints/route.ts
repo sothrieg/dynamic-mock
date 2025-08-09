@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
-import { withAnalytics } from '@/lib/middleware';
+import { withAuthAndAnalytics } from '@/lib/middleware';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,3 +87,4 @@ async function handlePOST(request: NextRequest) {
 }
 
 export const POST = withAnalytics(handlePOST);
+export const POST = withAuthAndAnalytics(handlePOST);

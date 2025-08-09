@@ -142,12 +142,18 @@ export function FileUpload({ onValidation, onReset }: FileUploadProps) {
       const clearPromises = [
         // Clear API data
         fetch('/api/validate', {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Basic ' + btoa('test:test'),
+          }
         }).catch(err => console.error('Error clearing API data:', err)),
         
         // Clear analytics data with query parameter
         fetch('/api/analytics?clearAll=true', {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Basic ' + btoa('test:test'),
+          }
         }).catch(err => console.error('Error clearing analytics:', err))
       ];
 

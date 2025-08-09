@@ -82,6 +82,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
         method: method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa('test:test'),
         },
       });
       

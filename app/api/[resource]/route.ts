@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dataStore } from '@/lib/data-store';
 import { validateJsonWithSchema } from '@/lib/validation';
-import { withAnalytics } from '@/lib/middleware';
+import { withAuthAndAnalytics } from '@/lib/middleware';
 
 // Handle OPTIONS requests for CORS
 async function handleOPTIONS(request: NextRequest) {
@@ -219,6 +219,6 @@ async function handlePOST(
   }
 }
 
-export const OPTIONS = withAnalytics(handleOPTIONS);
-export const GET = withAnalytics(handleGET);
-export const POST = withAnalytics(handlePOST);
+export const OPTIONS = withAuthAndAnalytics(handleOPTIONS);
+export const GET = withAuthAndAnalytics(handleGET);
+export const POST = withAuthAndAnalytics(handlePOST);
