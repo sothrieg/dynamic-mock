@@ -86,5 +86,4 @@ async function handlePOST(request: NextRequest) {
   }
 }
 
-export const POST = withAnalytics(handlePOST);
 export const POST = withAuthAndAnalytics(handlePOST);
