@@ -183,6 +183,18 @@ export function EndpointSelection({ resources, onGenerate, isGenerating = false,
     }
   };
 
+  const handleGenerateEndpoints = async (selectedEndpoints: EndpointConfig[]) => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-endpoints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa('test:test'),
+        },
+        body: JSON.stringify({ selectedEndpoints }),
+      });
+
   return (
     <Card>
       <CardHeader>

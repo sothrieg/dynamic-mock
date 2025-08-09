@@ -48,7 +48,11 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
   useEffect(() => {
     const loadExistingConfig = async () => {
       try {
-        const response = await fetch('/api/endpoint-config');
+        const response = await fetch('/api/endpoint-config', {
+          headers: {
+            'Authorization': 'Basic ' + btoa('test:test'),
+          }
+        });
         if (response.ok) {
           const config = await response.json();
           if (config && config.length > 0) {
@@ -195,7 +199,11 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
   const downloadPostmanCollection = async () => {
     setIsDownloadingPostman(true);
     try {
-      const response = await fetch('/api/postman');
+      const response = await fetch('/api/postman', {
+        headers: {
+          'Authorization': 'Basic ' + btoa('test:test'),
+        }
+      });
       
       if (!response.ok) {
         const errorData = await response.json();
