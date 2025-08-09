@@ -175,6 +175,7 @@ export function ValidationResult({ isValid, errors, resources }: ValidationResul
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa('test:test'),
         },
         body: JSON.stringify({ selectedEndpoints }),
       });
