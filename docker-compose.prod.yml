@@ -47,6 +47,8 @@ services:
 volumes:
   json_data:
     driver: local
+  nginx_cache:
+    driver: local
 
 networks:
   app-network:
