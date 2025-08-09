@@ -14,7 +14,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply CORS headers to all API routes
+        // Apply comprehensive CORS headers to all API routes for HTTP and HTTPS
         source: '/api/:path*',
         headers: [
           {
@@ -27,7 +27,7 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+            value: 'Content-Type, Authorization, Accept, Origin, X-Requested-With, X-Forwarded-Proto, X-Forwarded-Host',
           },
           {
             key: 'Access-Control-Allow-Credentials',
@@ -36,6 +36,18 @@ const nextConfig = {
           {
             key: 'Access-Control-Max-Age',
             value: '86400',
+          },
+          {
+            key: 'Vary',
+            value: 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
           },
         ],
       },

@@ -243,10 +243,27 @@ export default function SwaggerPage() {
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
                 <div className="space-y-2">
-                  <p className="font-medium">Docker Environment Detected</p>
+                  <p className="font-medium">Docker Environment Detected ({window.location.protocol.replace(':', '')})</p>
                   <p className="text-sm">
-                    You're running in a Docker container. The API is accessible at this URL, but for external access 
-                    you may need to use <code>localhost:3000</code> instead of <code>0.0.0.0:3000</code> in your applications.
+                    You're running in a Docker container with {window.location.protocol.replace(':', '')} protocol. 
+                    The API is accessible at this URL, but for external access you may need to use{' '}
+                    <code>{window.location.protocol}//localhost:{window.location.port || '3000'}</code> instead of{' '}
+                    <code>{window.location.protocol}//0.0.0.0:{window.location.port || '3000'}</code> in your applications.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* HTTPS Environment Notice */}
+          {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <div className="space-y-2">
+                  <p className="font-medium">🔒 Secure HTTPS Connection Active</p>
+                  <p className="text-sm">
+                    Your API is running over HTTPS with enhanced security headers. All API requests will use secure connections.
                   </p>
                 </div>
               </AlertDescription>
@@ -348,12 +365,18 @@ export default function SwaggerPage() {
                         request.headers = {
                           ...request.headers,
                           'Accept': 'application/json',
-                          'Content-Type': request.method !== 'GET' ? 'application/json' : undefined
+                          'Content-Type': request.method !== 'GET' ? 'application/json' : undefined,
+                          'X-Forwarded-Proto': window.location.protocol.replace(':', '')
                         };
                         
-                        // Fix URL for Docker environments - replace 0.0.0.0 with localhost
+                        // Fix URL for Docker environments - replace 0.0.0.0 with localhost and preserve protocol
                         if (request.url && request.url.includes('0.0.0.0')) {
-                          request.url = request.url.replace('0.0.0.0', 'localhost');
+                          const currentProtocol = window.location.protocol;
+                          const port = window.location.port || '3000';
+                          request.url = request.url.replace(
+                            /https?:\/\/0\.0\.0\.0:\d+/,
+                            `${currentProtocol}//localhost:${port}`
+                          );
                         }
                         
                         console.log('API Request:', request);

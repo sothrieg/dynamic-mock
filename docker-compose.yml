@@ -30,12 +30,18 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
     depends_on:
       - json-schema-api-generator
     restart: unless-stopped
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+      - NGINX_SSL_PORT=443
     profiles:
       - production
 
 volumes:
   json_data:
     driver: local
+  nginx_cache:

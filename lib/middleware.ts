@@ -100,13 +100,15 @@ export function withAnalytics<T extends any[]>(
     if (path.startsWith('/api/')) {
       response.headers.set('Access-Control-Allow-Origin', '*');
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With, X-Forwarded-Proto, X-Forwarded-Host');
       response.headers.set('Access-Control-Allow-Credentials', 'false');
       response.headers.set('Access-Control-Max-Age', '86400');
       
       // Additional headers for better compatibility
-      response.headers.set('Vary', 'Origin');
+      response.headers.set('Vary', 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
       response.headers.set('X-Content-Type-Options', 'nosniff');
+      response.headers.set('X-Frame-Options', 'DENY');
+      response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     }
 
     const responseTime = Date.now() - startTime;

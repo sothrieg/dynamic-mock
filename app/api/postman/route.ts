@@ -19,19 +19,20 @@ async function handleGET(request: NextRequest) {
     // Get the correct base URL for different environments
     let baseUrl: string;
     
-    if (process.env.NODE_ENV === 'production') {
-      baseUrl = request.nextUrl.origin;
+    // Smart protocol and host detection for all environments
+    const protocol = request.headers.get('x-forwarded-proto') || 
+                    (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
+    const host = request.headers.get('host') || 'localhost:3000';
+    
+    // Handle Docker environments (0.0.0.0 -> localhost)
+    if (host.includes('0.0.0.0')) {
+      const port = host.split(':')[1] || '3000';
+      baseUrl = `${protocol}://localhost:${port}`;
     } else {
-      // In development, check if we're in Docker
-      const host = request.headers.get('host') || 'localhost:3000';
-      
-      // If host contains 0.0.0.0, use localhost for better compatibility
-      if (host.includes('0.0.0.0')) {
-        baseUrl = `http://localhost:${host.split(':')[1] || '3000'}`;
-      } else {
-        baseUrl = `http://${host}`;
-      }
+      baseUrl = `${protocol}://${host}`;
     }
+    
+    console.log(`📮 Postman Collection Base URL: ${baseUrl} (Protocol: ${protocol}, Host: ${host})`);
 
     // Get endpoint configuration
     const endpointConfig = dataStore.getEndpointConfig();
